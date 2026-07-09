@@ -1,7 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Animated,
   Image,
   ScrollView,
@@ -14,8 +14,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TAB_BAR_HEIGHT } from '@/constants/theme';
 import { FALLBACK_POLLEN, PollenResult } from '@/data/mockData';
-import { posthog } from '@/lib/posthog';
+import { LocationSearchModal, getGPSLocation } from '@/components/LocationSearchModal';
 import { usePollenAnalyses } from '@/hooks/usePollenAnalyses';
+import { posthog } from '@/lib/posthog';
 
 type ViewState = 'capture' | 'analyzing' | 'results' | 'history';
 
@@ -25,38 +26,22 @@ const ANALYZING_MESSAGES = [
   'Calculando especies en floración…',
 ];
 
-async function getLocationLabel(): Promise<string> {
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') return 'España';
-    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    const [place] = await Location.reverseGeocodeAsync({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
-    return [place.city, place.region, place.country].filter(Boolean).join(', ');
-  } catch {
-    return 'España';
-  }
-}
-
-async function analyzePollenImage(base64: string): Promise<PollenResult[]> {
+async function analyzePollenImage(base64: string, location: string): Promise<PollenResult[]> {
   const apiKey = process.env.EXPO_PUBLIC_OPENAI_KEY;
   if (!apiKey) return FALLBACK_POLLEN;
 
   try {
     const today = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-    const location = await getLocationLabel();
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify({
         model: 'gpt-4o',
         max_tokens: 512,
         messages: [
           {
             role: 'system',
-            content: `Eres un experto en botánica y apicultura. La ubicación aproximada es ${location}. La fecha de hoy es ${today}.`,
+            content: `Eres un experto en botánica y apicultura. La ubicación es ${location}. La fecha de hoy es ${today}.`,
           },
           {
             role: 'user',
@@ -77,6 +62,7 @@ async function analyzePollenImage(base64: string): Promise<PollenResult[]> {
   }
 }
 
+
 export default function PolenScreen() {
   const insets = useSafeAreaInsets();
   const { analyses: pollenHistory, saveAnalysis } = usePollenAnalyses();
@@ -85,8 +71,18 @@ export default function PolenScreen() {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [results, setResults] = useState<PollenResult[]>([]);
   const [msgIndex, setMsgIndex] = useState(0);
+  const [location, setLocation] = useState<string>('Detectando ubicación…');
+  const [locationReady, setLocationReady] = useState(false);
+  const [showLocationSearch, setShowLocationSearch] = useState(false);
   const spinAnim = useRef(new Animated.Value(0)).current;
   const spinRef = useRef<Animated.CompositeAnimation | null>(null);
+
+  useEffect(() => {
+    getGPSLocation().then((loc) => {
+      setLocation(loc ?? 'España');
+      setLocationReady(true);
+    });
+  }, []);
 
   useEffect(() => {
     if (view === 'analyzing') {
@@ -118,12 +114,13 @@ export default function PolenScreen() {
       setImageUri(asset.uri);
       setImageBase64(asset.base64 ?? null);
       setView('analyzing');
-      posthog.capture('feature_used', { feature: 'pollen_analyzer' });
-      const res = await analyzePollenImage(asset.base64 ?? '');
+      posthog.capture('feature_used', { feature: 'pollen_analyzer', location });
+      const res = await analyzePollenImage(asset.base64 ?? '', location);
       setResults(res);
       setView('results');
     }
   }
+
 
   function saveToHistory() {
     if (!results.length) return;
@@ -143,13 +140,24 @@ export default function PolenScreen() {
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + Spacing.lg }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        {/* CAPTURE */}
         {view === 'capture' && (
           <>
             <Text style={styles.captureIntro}>
               Fotografía a tus abejas cuando vuelven a la colmena cargadas de polen. El analizador identificará las plantas que están visitando en tu zona.
             </Text>
+
+            {/* Location row */}
+            <TouchableOpacity style={styles.locationRow} onPress={() => setShowLocationSearch(true)} activeOpacity={0.75}>
+              <Text style={styles.locationPin}>📍</Text>
+              <Text style={styles.locationLabel} numberOfLines={1}>
+                {locationReady ? location : 'Detectando ubicación…'}
+              </Text>
+              {!locationReady && <ActivityIndicator size="small" color={Colors.honeyPrimary} style={{ marginLeft: 4 }} />}
+              <Text style={styles.locationChange}>Cambiar</Text>
+            </TouchableOpacity>
+
             <View style={styles.uploadCard}>
               <View style={styles.cameraIconContainer}>
                 <View style={styles.cameraIconBody}>
@@ -185,25 +193,22 @@ export default function PolenScreen() {
           </>
         )}
 
-        {/* ANALYZING */}
         {view === 'analyzing' && (
           <View style={styles.analyzingCard}>
-            {imageUri && (
-              <Image source={{ uri: imageUri }} style={styles.thumbImg} />
-            )}
+            {imageUri && <Image source={{ uri: imageUri }} style={styles.thumbImg} />}
             <Animated.View style={[styles.spinner, { transform: [{ rotate: spin }] }]} />
             <Text style={styles.analyzingMsg}>{ANALYZING_MESSAGES[msgIndex]}</Text>
+            <Text style={styles.analyzingLocation}>📍 {location}</Text>
           </View>
         )}
 
-        {/* RESULTS */}
         {view === 'results' && results.length > 0 && (
           <>
             <View style={styles.resultHeader}>
               {imageUri && <Image source={{ uri: imageUri }} style={styles.resultThumb} />}
               <View style={{ flex: 1 }}>
                 <Text style={styles.resultTitle}>Resultado del análisis</Text>
-                <Text style={styles.resultDate}>{new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}</Text>
+                <Text style={styles.resultDate}>{new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })} · {location}</Text>
               </View>
             </View>
 
@@ -244,7 +249,6 @@ export default function PolenScreen() {
           </>
         )}
 
-        {/* HISTORY */}
         {view === 'history' && (
           <>
             <Text style={styles.sectionTitle}>Historial de análisis</Text>
@@ -262,6 +266,13 @@ export default function PolenScreen() {
           </>
         )}
       </ScrollView>
+
+      <LocationSearchModal
+        visible={showLocationSearch}
+        onClose={() => setShowLocationSearch(false)}
+        onSelect={(label) => { setLocation(label); setLocationReady(true); }}
+        showGPS
+      />
     </View>
   );
 }
@@ -274,7 +285,12 @@ const styles = StyleSheet.create({
   headerIconText: { fontSize: 18, color: Colors.honeyDark },
   content: { paddingHorizontal: Spacing.lg, paddingTop: 4 },
 
-  captureIntro: { fontSize: 13.5, color: Colors.textMuted, fontFamily: 'NunitoSans', lineHeight: 20, marginBottom: 20 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.card, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 11, marginBottom: 12, gap: 6, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  locationPin: { fontSize: 15 },
+  locationLabel: { flex: 1, fontSize: 13.5, color: Colors.textPrimary, fontFamily: 'NunitoSans-SemiBold' },
+  locationChange: { fontSize: 12.5, color: Colors.honeyDark, fontFamily: 'NunitoSans-SemiBold' },
+
+  captureIntro: { fontSize: 13.5, color: Colors.textMuted, fontFamily: 'NunitoSans', lineHeight: 20, marginBottom: 12 },
   uploadCard: { backgroundColor: Colors.card, borderRadius: 20, padding: 24, alignItems: 'center', borderWidth: 2, borderColor: Colors.border2, borderStyle: 'dashed', marginBottom: 24 },
   cameraIconContainer: { marginBottom: 14 },
   cameraIconBody: { width: 52, height: 38, borderRadius: 8, backgroundColor: Colors.honeyFaint, alignItems: 'center', justifyContent: 'center' },
@@ -297,15 +313,16 @@ const styles = StyleSheet.create({
   historyMeta: { fontSize: 11.5, color: Colors.textMuted, fontFamily: 'NunitoSans', marginTop: 2 },
   historyProb: { fontSize: 15, fontFamily: 'Nunito-ExtraBold', color: Colors.textMuted },
 
-  analyzingCard: { backgroundColor: Colors.card, borderRadius: 20, padding: 32, alignItems: 'center', gap: 20, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
+  analyzingCard: { backgroundColor: Colors.card, borderRadius: 20, padding: 32, alignItems: 'center', gap: 16, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 16, elevation: 4 },
   thumbImg: { width: 96, height: 96, borderRadius: 12 },
   spinner: { width: 48, height: 48, borderRadius: 24, borderWidth: 3, borderColor: Colors.border2, borderTopColor: Colors.greenPrimary },
   analyzingMsg: { fontSize: 14, color: Colors.textMuted, fontFamily: 'NunitoSans-SemiBold', textAlign: 'center' },
+  analyzingLocation: { fontSize: 12, color: Colors.textMuted, fontFamily: 'NunitoSans', textAlign: 'center' },
 
   resultHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 20 },
   resultThumb: { width: 64, height: 64, borderRadius: 12 },
   resultTitle: { fontFamily: 'Nunito-ExtraBold', fontSize: 16, color: Colors.textPrimary },
-  resultDate: { fontSize: 13, color: Colors.textMuted, fontFamily: 'NunitoSans', marginTop: 4 },
+  resultDate: { fontSize: 12, color: Colors.textMuted, fontFamily: 'NunitoSans', marginTop: 4 },
 
   speciesCard: { backgroundColor: Colors.card, borderRadius: 16, padding: 16, marginBottom: 10, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   speciesHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
@@ -325,3 +342,4 @@ const styles = StyleSheet.create({
 
   historyCard: { backgroundColor: Colors.card, borderRadius: 16, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 8, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
 });
+

@@ -23,7 +23,7 @@ export function usePollenAnalyses() {
   const [loading, setLoading] = useState(true);
 
   async function fetch() {
-    if (!session) {
+    if (!session || session.user.is_anonymous) {
       setAnalyses(POLLEN_HISTORY);
       setLoading(false);
       return;
@@ -67,7 +67,7 @@ export function usePollenAnalyses() {
     };
     setAnalyses((prev) => [entry, ...prev]);
 
-    if (!session) return;
+    if (!session || session.user.is_anonymous) return;
 
     let imageUrl: string | null = null;
     if (imageUri) {

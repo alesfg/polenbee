@@ -10,7 +10,7 @@ export function useTasks() {
   const [doneOverrides, setDoneOverrides] = useState<Record<string, boolean>>({});
 
   async function fetch() {
-    if (!session) {
+    if (!session || session.user.is_anonymous) {
       setTasks(TASKS);
       setLoading(false);
       return;
@@ -44,7 +44,7 @@ export function useTasks() {
   async function toggleTask(id: string, current: boolean) {
     const next = !current;
     setDoneOverrides((prev) => ({ ...prev, [id]: next }));
-    if (session) {
+    if (session && !session.user.is_anonymous) {
       await supabase.from('polenbee_tasks').update({ done: next }).eq('id', id);
     }
   }
@@ -56,7 +56,7 @@ export function useTasks() {
     apiaryId?: string,
     apiaryName?: string
   ) {
-    if (!session) {
+    if (!session || session.user.is_anonymous) {
       const newTask: Task = {
         id: `local-${Date.now()}`,
         title,
@@ -95,7 +95,7 @@ export function useTasks() {
 
   async function deleteTask(id: string) {
     setTasks((prev) => prev.filter((t) => t.id !== id));
-    if (session) {
+    if (session && !session.user.is_anonymous) {
       await supabase.from('polenbee_tasks').delete().eq('id', id);
     }
   }

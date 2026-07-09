@@ -9,7 +9,7 @@ export function useInspections(hiveId?: string | null) {
   const [loading, setLoading] = useState(true);
 
   async function fetch() {
-    if (!session) {
+    if (!session || session.user.is_anonymous) {
       const hive = HIVES.find((h) => h.id === hiveId);
       setInspections(hive ? hive.inspections : []);
       setLoading(false);
@@ -56,7 +56,7 @@ export function useInspections(hiveId?: string | null) {
       notes: string;
     }
   ) {
-    if (!session) {
+    if (!session || session.user.is_anonymous) {
       const newInsp: Inspection = {
         id: `local-${Date.now()}`,
         date: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),

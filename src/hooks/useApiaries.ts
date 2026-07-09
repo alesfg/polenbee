@@ -9,7 +9,7 @@ export function useApiaries() {
   const [loading, setLoading] = useState(true);
 
   async function fetch() {
-    if (!session) {
+    if (!session || session.user.is_anonymous) {
       setApiaries(APIARIES);
       setLoading(false);
       return;
@@ -38,7 +38,10 @@ export function useApiaries() {
   useEffect(() => { if (session !== undefined) fetch(); }, [session]);
 
   async function addApiary(name: string, location: string) {
-    if (!session) return;
+    if (!session || session.user.is_anonymous) {
+      setApiaries((prev) => [...prev, { id: `local-${Date.now()}`, name, location, hiveCount: 0 }]);
+      return;
+    }
     const { data, error } = await supabase
       .from('polenbee_apiaries')
       .insert({ user_id: session.user.id, name, location })
@@ -50,9 +53,10 @@ export function useApiaries() {
   }
 
   async function deleteApiary(id: string) {
-    if (!session) return;
-    await supabase.from('polenbee_apiaries').delete().eq('id', id);
     setApiaries((prev) => prev.filter((a) => a.id !== id));
+    if (session && !session.user.is_anonymous) {
+      await supabase.from('polenbee_apiaries').delete().eq('id', id);
+    }
   }
 
   return { apiaries, loading, refetch: fetch, addApiary, deleteApiary };

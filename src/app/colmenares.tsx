@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Modal,
   ScrollView,
   StyleSheet,
@@ -14,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TAB_BAR_HEIGHT } from '@/constants/theme';
 import { HiveStatus } from '@/data/mockData';
+import { getGPSLocation } from '@/components/LocationSearchModal';
 import { useApiaries } from '@/hooks/useApiaries';
 import { useHives } from '@/hooks/useHives';
 import { useInspections } from '@/hooks/useInspections';
@@ -96,6 +98,11 @@ export default function ColmenaresScreen() {
   // Apiary form state
   const [newApiaryName, setNewApiaryName] = useState('');
   const [newApiaryLocation, setNewApiaryLocation] = useState('');
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationResults, setLocationResults] = useState<Array<{ place_id: number; display_name: string; name: string; address: { city?: string; town?: string; village?: string; county?: string; state?: string; country?: string } }>>([]);
+  const [locationSearching, setLocationSearching] = useState(false);
+  const [showLocationSearch, setShowLocationSearch] = useState(false);
+  const locationDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Hive form state
   const [newHiveCode, setNewHiveCode] = useState('');
@@ -146,6 +153,30 @@ export default function ColmenaresScreen() {
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Eliminar', style: 'destructive', onPress: () => deleteHive(id) },
     ]);
+  }
+
+  function handleLocationQuery(text: string) {
+    setLocationQuery(text);
+    if (locationDebounceRef.current) clearTimeout(locationDebounceRef.current);
+    if (text.trim().length < 2) { setLocationResults([]); return; }
+    locationDebounceRef.current = setTimeout(async () => {
+      setLocationSearching(true);
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(text)}&format=json&limit=5&accept-language=es&addressdetails=1`;
+        const res = await fetch(url, { headers: { 'User-Agent': 'PolenBee/1.0' } });
+        setLocationResults(await res.json());
+      } catch { setLocationResults([]); }
+      setLocationSearching(false);
+    }, 400);
+  }
+
+  function selectLocation(r: { name: string; address: { city?: string; town?: string; village?: string; state?: string; country?: string } }) {
+    const a = r.address;
+    const label = [a.city ?? a.town ?? a.village ?? r.name, a.state, a.country].filter(Boolean).join(', ');
+    setNewApiaryLocation(label);
+    setShowLocationSearch(false);
+    setLocationQuery('');
+    setLocationResults([]);
   }
 
   async function saveApiary() {
@@ -389,7 +420,49 @@ export default function ColmenaresScreen() {
             <Text style={styles.fieldLabel}>Nombre</Text>
             <TextInput style={styles.formInput} value={newApiaryName} onChangeText={setNewApiaryName} placeholder="Ej. Valle del Jerte" placeholderTextColor={Colors.textMuted} />
             <Text style={styles.fieldLabel}>Ubicación</Text>
-            <TextInput style={styles.formInput} value={newApiaryLocation} onChangeText={setNewApiaryLocation} placeholder="Ej. Cáceres, Extremadura" placeholderTextColor={Colors.textMuted} />
+            {!showLocationSearch ? (
+              <TouchableOpacity
+                style={[styles.formInput, styles.locationPicker]}
+                onPress={() => setShowLocationSearch(true)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.locationPickerText, !newApiaryLocation && { color: Colors.textMuted }]}>
+                  {newApiaryLocation || 'Buscar localidad…'}
+                </Text>
+                <Text style={styles.locationPickerIcon}>📍</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.locationInlineSearch}>
+                <View style={styles.locationSearchRow}>
+                  <TextInput
+                    style={styles.locationSearchInput}
+                    value={locationQuery}
+                    onChangeText={handleLocationQuery}
+                    placeholder="Escribe una localidad…"
+                    placeholderTextColor={Colors.textMuted}
+                    autoFocus
+                  />
+                  {locationSearching && <ActivityIndicator size="small" color={Colors.honeyPrimary} />}
+                </View>
+                <TouchableOpacity style={styles.locationGpsRow} onPress={async () => {
+                  const loc = await getGPSLocation();
+                  if (loc) { setNewApiaryLocation(loc); setShowLocationSearch(false); setLocationQuery(''); setLocationResults([]); }
+                }}>
+                  <Text style={styles.locationGpsText}>📡 Usar mi ubicación GPS</Text>
+                </TouchableOpacity>
+                {locationResults.map((r) => (
+                  <TouchableOpacity key={r.place_id} style={styles.locationResultRow} onPress={() => selectLocation(r)}>
+                    <Text style={styles.locationResultPin}>📍</Text>
+                    <Text style={styles.locationResultText} numberOfLines={2}>
+                      {[r.address.city ?? r.address.town ?? r.address.village ?? r.name, r.address.state, r.address.country].filter(Boolean).join(', ')}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+                {locationQuery.length >= 2 && !locationSearching && locationResults.length === 0 && (
+                  <Text style={styles.locationEmpty}>Sin resultados</Text>
+                )}
+              </View>
+            )}
             <View style={[styles.sheetButtons, { marginTop: 8 }]}>
               <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowApiaryForm(false)}>
                 <Text style={styles.cancelBtnText}>Cancelar</Text>
@@ -507,6 +580,18 @@ const styles = StyleSheet.create({
   loqueText: { fontSize: 13, color: Colors.textPrimary, fontFamily: 'NunitoSans' },
   notesInput: { backgroundColor: Colors.bg, borderRadius: 12, padding: 12, fontSize: 13, color: Colors.textPrimary, fontFamily: 'NunitoSans', minHeight: 72, marginBottom: 20, textAlignVertical: 'top' },
   formInput: { backgroundColor: Colors.honeyFaint, borderRadius: 12, padding: 14, fontSize: 14, color: Colors.textPrimary, fontFamily: 'NunitoSans', marginBottom: 14 },
+  locationPicker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  locationPickerText: { fontSize: 14, color: Colors.textPrimary, fontFamily: 'NunitoSans', flex: 1 },
+  locationPickerIcon: { fontSize: 16 },
+  locationInlineSearch: { marginBottom: 14 },
+  locationSearchRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.honeyFaint, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 2, marginBottom: 8, gap: 8 },
+  locationSearchInput: { flex: 1, fontSize: 14, color: Colors.textPrimary, fontFamily: 'NunitoSans', paddingVertical: 12 },
+  locationGpsRow: { backgroundColor: Colors.greenLight, borderRadius: 10, padding: 10, marginBottom: 6 },
+  locationGpsText: { fontSize: 13, color: Colors.greenDark, fontFamily: 'NunitoSans-SemiBold' },
+  locationResultRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.border },
+  locationResultPin: { fontSize: 14 },
+  locationResultText: { flex: 1, fontSize: 13.5, color: Colors.textPrimary, fontFamily: 'NunitoSans' },
+  locationEmpty: { fontSize: 13, color: Colors.textMuted, fontFamily: 'NunitoSans', textAlign: 'center', paddingVertical: 10 },
   sheetButtons: { flexDirection: 'row', gap: 10 },
   cancelBtn: { flex: 1, padding: 14, borderRadius: 14, backgroundColor: Colors.honeyFaint, alignItems: 'center' },
   cancelBtnText: { color: Colors.honeyDark, fontFamily: 'Nunito-ExtraBold', fontSize: 15 },

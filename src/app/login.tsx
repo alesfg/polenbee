@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -10,11 +11,13 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { signIn, signInAnonymously, signUp } from '@/lib/auth';
 import { Colors, Spacing } from '@/constants/theme';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -32,6 +35,7 @@ export default function LoginScreen() {
       } else {
         await signUp(email, password);
       }
+      router.replace('/');
     } catch (e: any) {
       setError(e.message ?? 'Error desconocido');
     } finally {
@@ -47,12 +51,7 @@ export default function LoginScreen() {
       <View style={styles.inner}>
         {/* Logo */}
         <View style={styles.logoArea}>
-          <View style={styles.logoBadge}>
-            <View style={styles.flowerCenter} />
-            {[0, 45, 90, 135].map((a) => (
-              <View key={a} style={[styles.flowerPetal, { transform: [{ rotate: `${a}deg` }, { translateY: -9 }] }]} />
-            ))}
-          </View>
+          <Image source={require('../../assets/images/icon.png')} style={styles.logoImg} />
           <Text style={styles.appName}>PolenBee</Text>
           <Text style={styles.tagline}>Gestión de colmenas inteligente</Text>
         </View>
@@ -116,7 +115,7 @@ export default function LoginScreen() {
           onPress={async () => {
             setAnonLoading(true);
             setError('');
-            try { await signInAnonymously(); }
+            try { await signInAnonymously(); router.replace('/'); }
             catch (e: any) { setError(e.message ?? 'Error desconocido'); }
             finally { setAnonLoading(false); }
           }}
@@ -138,9 +137,7 @@ const styles = StyleSheet.create({
   inner: { flex: 1, paddingHorizontal: Spacing.lg, justifyContent: 'center', gap: Spacing.xl },
 
   logoArea: { alignItems: 'center', gap: 8 },
-  logoBadge: { width: 72, height: 72, borderRadius: 22, backgroundColor: Colors.greenDark, alignItems: 'center', justifyContent: 'center' },
-  flowerCenter: { width: 10, height: 10, borderRadius: 5, backgroundColor: Colors.honeySoft, position: 'absolute' },
-  flowerPetal: { position: 'absolute', width: 7, height: 13, borderRadius: 4, backgroundColor: Colors.honeySoft },
+  logoImg: { width: 100, height: 100, resizeMode: 'contain' },
   appName: { fontFamily: 'Nunito-Black', fontSize: 32, color: Colors.honeyDark },
   tagline: { fontFamily: 'NunitoSans', fontSize: 14, color: Colors.textMuted, textAlign: 'center' },
 
