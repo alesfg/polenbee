@@ -1,9 +1,19 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TAB_BAR_HEIGHT } from '@/constants/theme';
-import { TASKS, Task } from '@/data/mockData';
+import { Task } from '@/data/mockData';
+import { useApiaries } from '@/hooks/useApiaries';
+import { useTasks } from '@/hooks/useTasks';
 
 function taskBadgeColors(type: Task['type']) {
   switch (type) {
@@ -23,20 +33,37 @@ function taskTypeLabel(type: Task['type']) {
   }
 }
 
+const TASK_TYPES: Task['type'][] = ['treatment', 'feeding', 'harvest', 'inspection'];
+const TASK_TYPE_LABELS: Record<Task['type'], string> = {
+  treatment: 'Tratamiento',
+  feeding: 'Alimentación',
+  harvest: 'Cosecha',
+  inspection: 'Inspección',
+};
+
 export default function CalendarioScreen() {
   const insets = useSafeAreaInsets();
-  const [doneOverrides, setDoneOverrides] = useState<Record<string, boolean>>({});
+  const { tasks, isDone, toggleTask, addTask } = useTasks();
+  const { apiaries } = useApiaries();
+  const [showForm, setShowForm] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDate, setNewDate] = useState('');
+  const [newType, setNewType] = useState<Task['type']>('inspection');
+  const [newApiaryIndex, setNewApiaryIndex] = useState(0);
 
-  function isDone(t: Task) {
-    return doneOverrides[t.id] !== undefined ? doneOverrides[t.id] : t.done;
+  const pending = tasks.filter((t) => !isDone(t));
+  const done = tasks.filter((t) => isDone(t));
+
+  async function saveTask() {
+    if (!newTitle || !newDate) return;
+    const apiary = apiaries[newApiaryIndex];
+    // Convert DD/MM/YYYY to YYYY-MM-DD for DB
+    const parts = newDate.split('/');
+    const isoDate = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : newDate;
+    await addTask(newTitle, isoDate, newType, apiary?.id, apiary?.name);
+    setNewTitle(''); setNewDate(''); setNewType('inspection'); setNewApiaryIndex(0);
+    setShowForm(false);
   }
-
-  function toggleDone(id: string, current: boolean) {
-    setDoneOverrides((prev) => ({ ...prev, [id]: !current }));
-  }
-
-  const pending = TASKS.filter((t) => !isDone(t));
-  const done = TASKS.filter((t) => isDone(t));
 
   function TaskCard({ task }: { task: Task }) {
     const done_ = isDone(task);
@@ -45,7 +72,7 @@ export default function CalendarioScreen() {
       <View style={[styles.taskCard, done_ && { opacity: 0.6 }]}>
         <TouchableOpacity
           style={[styles.checkbox, done_ && { backgroundColor: Colors.greenPrimary, borderColor: Colors.greenPrimary }]}
-          onPress={() => toggleDone(task.id, done_)}
+          onPress={() => toggleTask(task.id, done_)}
         >
           {done_ && <Text style={styles.checkMark}>✓</Text>}
         </TouchableOpacity>
@@ -56,42 +83,99 @@ export default function CalendarioScreen() {
           <Text style={[styles.taskTitle, done_ && { textDecorationLine: 'line-through' }]}>
             {task.title}
           </Text>
-          <Text style={styles.taskMeta}>{task.date} · {task.apiary}</Text>
+          <Text style={styles.taskMeta}>{task.date}{task.apiary ? ` · ${task.apiary}` : ''}</Text>
         </View>
       </View>
     );
   }
 
   return (
-    <ScrollView
-      style={[styles.screen, { paddingTop: insets.top }]}
-      contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + Spacing.lg }]}
-      showsVerticalScrollIndicator={false}
-    >
-      <Text style={styles.screenTitle}>Calendario</Text>
-      <Text style={styles.screenSubtitle}>Verano 2026 · floración de jara y romero</Text>
+    <View style={[styles.wrapper, { paddingTop: insets.top }]}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + Spacing.lg }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.screenTitle}>Calendario</Text>
+        <Text style={styles.screenSubtitle}>Verano 2026 · floración de jara y romero</Text>
 
-      <Text style={styles.sectionTitle}>Pendientes</Text>
-      {pending.length === 0 ? (
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyText}>No hay tareas pendientes 🎉</Text>
+        <Text style={styles.sectionTitle}>Pendientes</Text>
+        {pending.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>No hay tareas pendientes 🎉</Text>
+          </View>
+        ) : (
+          pending.map((t) => <TaskCard key={t.id} task={t} />)
+        )}
+
+        {done.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Completadas</Text>
+            {done.map((t) => <TaskCard key={t.id} task={t} />)}
+          </>
+        )}
+      </ScrollView>
+
+      {/* FAB */}
+      <TouchableOpacity style={[styles.fab, { bottom: TAB_BAR_HEIGHT + 16 }]} onPress={() => setShowForm(true)} activeOpacity={0.85}>
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
+
+      {/* NUEVA TAREA MODAL */}
+      <Modal visible={showForm} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+            <View style={styles.dragHandle} />
+            <Text style={styles.sheetTitle}>Nueva tarea</Text>
+
+            <Text style={styles.fieldLabel}>Título</Text>
+            <TextInput style={styles.formInput} value={newTitle} onChangeText={setNewTitle} placeholder="Ej. Tratamiento varroa" placeholderTextColor={Colors.textMuted} />
+
+            <Text style={styles.fieldLabel}>Fecha (DD/MM/AAAA)</Text>
+            <TextInput style={styles.formInput} value={newDate} onChangeText={setNewDate} placeholder="Ej. 25/07/2026" placeholderTextColor={Colors.textMuted} keyboardType="numbers-and-punctuation" />
+
+            <Text style={styles.fieldLabel}>Tipo</Text>
+            <View style={styles.pillRow}>
+              {TASK_TYPES.map((t) => (
+                <TouchableOpacity key={t} style={[styles.pill, newType === t && { backgroundColor: Colors.honeyFaint, borderColor: Colors.honeyDark }]} onPress={() => setNewType(t)}>
+                  <Text style={[styles.pillText, newType === t && { color: Colors.honeyDark, fontFamily: 'NunitoSans-Bold' }]}>{TASK_TYPE_LABELS[t]}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {apiaries.length > 0 && (
+              <>
+                <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Colmenar</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {apiaries.map((a, i) => (
+                      <TouchableOpacity key={a.id} style={[styles.pill, newApiaryIndex === i && { backgroundColor: Colors.honeyFaint, borderColor: Colors.honeyDark }]} onPress={() => setNewApiaryIndex(i)}>
+                        <Text style={[styles.pillText, newApiaryIndex === i && { color: Colors.honeyDark, fontFamily: 'NunitoSans-Bold' }]}>{a.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </>
+            )}
+
+            <View style={[styles.sheetButtons, { marginTop: 16 }]}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowForm(false)}>
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={saveTask}>
+                <Text style={styles.saveBtnText}>Guardar tarea</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      ) : (
-        pending.map((t) => <TaskCard key={t.id} task={t} />)
-      )}
-
-      {done.length > 0 && (
-        <>
-          <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Completadas</Text>
-          {done.map((t) => <TaskCard key={t.id} task={t} />)}
-        </>
-      )}
-    </ScrollView>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.bg },
+  wrapper: { flex: 1, backgroundColor: Colors.bg },
+  screen: { flex: 1 },
   content: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm },
   screenTitle: { fontFamily: 'Nunito-Black', fontSize: 22, color: Colors.textPrimary },
   screenSubtitle: { fontSize: 13, color: Colors.textMuted, fontFamily: 'NunitoSans', marginBottom: 20, marginTop: 2 },
@@ -103,7 +187,24 @@ const styles = StyleSheet.create({
   taskBadge: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   taskTitle: { fontFamily: 'NunitoSans-SemiBold', fontSize: 13.5, color: Colors.textPrimary },
   taskMeta: { fontSize: 12, color: Colors.textMuted, marginTop: 2, fontFamily: 'NunitoSans' },
-
   emptyCard: { backgroundColor: Colors.card, borderRadius: 16, padding: 20, alignItems: 'center', marginBottom: 8 },
   emptyText: { color: Colors.textMuted, fontFamily: 'NunitoSans-SemiBold', fontSize: 14 },
+
+  fab: { position: 'absolute', right: 20, width: 54, height: 54, borderRadius: 17, backgroundColor: Colors.honeyPrimary, alignItems: 'center', justifyContent: 'center', shadowColor: Colors.honeyPrimary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 6 },
+  fabText: { color: '#fff', fontSize: 28, lineHeight: 32, fontWeight: '300' },
+
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(58,44,29,0.5)', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: Colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%' },
+  dragHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border2, alignSelf: 'center', marginBottom: 16 },
+  sheetTitle: { fontFamily: 'Nunito-ExtraBold', fontSize: 18, color: Colors.textPrimary, marginBottom: 20 },
+  fieldLabel: { fontSize: 13, fontFamily: 'NunitoSans-SemiBold', color: Colors.textPrimary, marginBottom: 8 },
+  formInput: { backgroundColor: Colors.honeyFaint, borderRadius: 12, padding: 14, fontSize: 14, color: Colors.textPrimary, fontFamily: 'NunitoSans', marginBottom: 14 },
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pill: { borderRadius: 100, paddingHorizontal: 14, paddingVertical: 7, backgroundColor: Colors.honeyFaint, borderWidth: 1, borderColor: 'transparent' },
+  pillText: { fontSize: 13, color: Colors.textMuted, fontFamily: 'NunitoSans-Medium' },
+  sheetButtons: { flexDirection: 'row', gap: 10 },
+  cancelBtn: { flex: 1, padding: 14, borderRadius: 14, backgroundColor: Colors.honeyFaint, alignItems: 'center' },
+  cancelBtnText: { color: Colors.honeyDark, fontFamily: 'Nunito-ExtraBold', fontSize: 15 },
+  saveBtn: { flex: 2, padding: 14, borderRadius: 14, backgroundColor: Colors.greenDark, alignItems: 'center' },
+  saveBtnText: { color: '#fff', fontFamily: 'Nunito-ExtraBold', fontSize: 15 },
 });

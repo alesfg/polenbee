@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TAB_BAR_HEIGHT } from '@/constants/theme';
 import { FALLBACK_POLLEN, PollenHistoryEntry, PollenResult } from '@/data/mockData';
-import { useAppStore } from '@/store/appStore';
+import { usePollenAnalyses } from '@/hooks/usePollenAnalyses';
 
 type ViewState = 'capture' | 'analyzing' | 'results' | 'history';
 
@@ -24,27 +24,29 @@ const ANALYZING_MESSAGES = [
 ];
 
 async function analyzePollenImage(base64: string): Promise<PollenResult[]> {
-  const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_KEY;
+  const apiKey = process.env.EXPO_PUBLIC_OPENAI_KEY;
   if (!apiKey) return FALLBACK_POLLEN;
 
   try {
     const today = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
+        model: 'gpt-4o',
         max_tokens: 512,
-        system: `Eres un experto en botánica y apicultura. La ubicación aproximada es Cáceres, Extremadura, España. La fecha de hoy es ${today}.`,
         messages: [
+          {
+            role: 'system',
+            content: `Eres un experto en botánica y apicultura. La ubicación aproximada es Cáceres, Extremadura, España. La fecha de hoy es ${today}.`,
+          },
           {
             role: 'user',
             content: [
-              { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
+              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64}` } },
               { type: 'text', text: 'Analiza el color del polen en las corbículas de la abeja. Cruza con la ubicación y época del año. Devuelve SOLO JSON sin markdown con esta forma: {"especies":[{"nombreComun":"...","nombreCientifico":"...","probabilidad":45,"colorPolen":"#hex","colorNombre":"rojo oscuro","floracion":"Abril - Junio"}]}. Entre 3 y 5 especies, probabilidades sumando ~100.' },
             ],
           },
@@ -52,7 +54,7 @@ async function analyzePollenImage(base64: string): Promise<PollenResult[]> {
       }),
     });
     const data = await res.json();
-    const text: string = data?.content?.[0]?.text ?? '';
+    const text: string = data?.choices?.[0]?.message?.content ?? '';
     const parsed = JSON.parse(text.trim());
     return parsed.especies as PollenResult[];
   } catch {
@@ -62,7 +64,7 @@ async function analyzePollenImage(base64: string): Promise<PollenResult[]> {
 
 export default function PolenScreen() {
   const insets = useSafeAreaInsets();
-  const { pollenHistory, addPollenHistory } = useAppStore();
+  const { analyses: pollenHistory, saveAnalysis } = usePollenAnalyses();
   const [view, setView] = useState<ViewState>('capture');
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -109,15 +111,7 @@ export default function PolenScreen() {
 
   function saveToHistory() {
     if (!results.length) return;
-    const entry: PollenHistoryEntry = {
-      id: `ph-${Date.now()}`,
-      date: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-      apiary: 'Valle del Jerte',
-      topSpecies: results[0],
-      allSpecies: results,
-      imageUri: imageUri ?? undefined,
-    };
-    addPollenHistory(entry);
+    saveAnalysis(results, imageUri ?? undefined);
     setView('history');
   }
 

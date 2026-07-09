@@ -1,0 +1,79 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+import { HARVEST_DATA } from '@/data/mockData';
+import { useSession } from './useSession';
+
+export interface HarvestRow {
+  id: string;
+  hiveId: string;
+  hiveCode: string;
+  apiaryName: string;
+  harvestedAt: string;
+  kg: number;
+  season: string;
+  notes?: string;
+}
+
+export function useHarvests() {
+  const session = useSession();
+  const [harvests, setHarvests] = useState<HarvestRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [usingMock, setUsingMock] = useState(false);
+
+  async function fetch() {
+    if (!session) {
+      setUsingMock(true);
+      setLoading(false);
+      return;
+    }
+    setUsingMock(false);
+    setLoading(true);
+    const { data } = await supabase
+      .from('polenbee_harvests')
+      .select('id, hive_id, harvested_at, kg, season, notes, polenbee_hives(code, polenbee_apiaries(name))')
+      .order('harvested_at', { ascending: false });
+
+    if (data) {
+      const mapped: HarvestRow[] = data.map((row: any) => ({
+        id: row.id,
+        hiveId: row.hive_id,
+        hiveCode: row.polenbee_hives?.code ?? '',
+        apiaryName: row.polenbee_hives?.polenbee_apiaries?.name ?? '',
+        harvestedAt: row.harvested_at,
+        kg: row.kg,
+        season: row.season,
+        notes: row.notes,
+      }));
+      setHarvests(mapped);
+    }
+    setLoading(false);
+  }
+
+  useEffect(() => { if (session !== undefined) fetch(); }, [session]);
+
+  async function addHarvest(hiveId: string, kg: number, season: string, harvestedAt: string, notes?: string) {
+    if (!session) return;
+    const { data, error } = await supabase
+      .from('polenbee_harvests')
+      .insert({ user_id: session.user.id, hive_id: hiveId, kg, season, harvested_at: harvestedAt, notes: notes || null })
+      .select('id, hive_id, harvested_at, kg, season, notes, polenbee_hives(code, polenbee_apiaries(name))')
+      .single();
+    if (!error && data) {
+      const row = data as any;
+      setHarvests((prev) => [{
+        id: row.id,
+        hiveId: row.hive_id,
+        hiveCode: row.polenbee_hives?.code ?? '',
+        apiaryName: row.polenbee_hives?.polenbee_apiaries?.name ?? '',
+        harvestedAt: row.harvested_at,
+        kg: row.kg,
+        season: row.season,
+        notes: row.notes,
+      }, ...prev]);
+    }
+  }
+
+  const mockData = HARVEST_DATA;
+
+  return { harvests, loading, usingMock, mockData, refetch: fetch, addHarvest };
+}

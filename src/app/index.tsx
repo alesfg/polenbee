@@ -3,7 +3,10 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TAB_BAR_HEIGHT } from '@/constants/theme';
-import { HIVES, TASKS } from '@/data/mockData';
+import { useApiaries } from '@/hooks/useApiaries';
+import { useHives } from '@/hooks/useHives';
+import { useSession } from '@/hooks/useSession';
+import { useTasks } from '@/hooks/useTasks';
 
 const weather = {
   temp: 34,
@@ -20,8 +23,6 @@ const weather = {
 };
 
 const today = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-
-const attentionHives = HIVES.filter((h) => h.attentionReason);
 
 function getStatusColor(status: string) {
   if (status === 'Fuerte') return { fg: Colors.statusFuerteFg, bg: Colors.statusFuerteBg };
@@ -42,7 +43,15 @@ function getTaskBadgeColor(type: string) {
 export default function InicioScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const pendingTasks = TASKS.filter((t) => !t.done).slice(0, 3);
+  const session = useSession();
+  const { apiaries } = useApiaries();
+  const { hives } = useHives();
+  const { tasks, isDone } = useTasks();
+
+  const greeting = session?.user?.email?.split('@')[0] ?? 'Elena';
+  const pendingTasks = tasks.filter((t) => !isDone(t)).slice(0, 3);
+  const attentionHives = hives.filter((h) => h.attentionReason);
+  const totalKg = 187;
 
   return (
     <ScrollView
@@ -53,7 +62,7 @@ export default function InicioScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Hola, Elena</Text>
+          <Text style={styles.greeting}>Hola, {greeting}</Text>
           <Text style={styles.dateText}>{today}</Text>
         </View>
         <View style={styles.avatar}>
@@ -90,32 +99,25 @@ export default function InicioScreen() {
       {/* Stats */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
-          <Text style={[styles.statNumber, { color: Colors.honeyDark }]}>24</Text>
+          <Text style={[styles.statNumber, { color: Colors.honeyDark }]}>{hives.length}</Text>
           <Text style={styles.statLabel}>Colmenas</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={[styles.statNumber, { color: Colors.greenPrimary }]}>3</Text>
+          <Text style={[styles.statNumber, { color: Colors.greenPrimary }]}>{apiaries.length}</Text>
           <Text style={styles.statLabel}>Colmenares</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={[styles.statNumber, { color: Colors.honeyDark }]}>187 kg</Text>
+          <Text style={[styles.statNumber, { color: Colors.honeyDark }]}>{totalKg} kg</Text>
           <Text style={styles.statLabel}>Miel temporada</Text>
         </View>
       </View>
 
       {/* Pollen CTA */}
-      <TouchableOpacity
-        style={styles.pollenCTA}
-        activeOpacity={0.85}
-        onPress={() => router.push('/polen')}
-      >
+      <TouchableOpacity style={styles.pollenCTA} activeOpacity={0.85} onPress={() => router.push('/polen')}>
         <View style={styles.pollenIconBadge}>
           <View style={styles.flowerCenter} />
           {[0, 45, 90, 135].map((a) => (
-            <View
-              key={a}
-              style={[styles.flowerPetal, { transform: [{ rotate: `${a}deg` }, { translateY: -9 }] }]}
-            />
+            <View key={a} style={[styles.flowerPetal, { transform: [{ rotate: `${a}deg` }, { translateY: -9 }] }]} />
           ))}
         </View>
         <View style={{ flex: 1 }}>
@@ -147,28 +149,30 @@ export default function InicioScreen() {
       )}
 
       {/* Próximas tareas */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Próximas tareas</Text>
-          <TouchableOpacity onPress={() => router.push('/calendario')}>
-            <Text style={styles.seeAll}>Ver todas</Text>
-          </TouchableOpacity>
+      {pendingTasks.length > 0 && (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Próximas tareas</Text>
+            <TouchableOpacity onPress={() => router.push('/calendario')}>
+              <Text style={styles.seeAll}>Ver todas</Text>
+            </TouchableOpacity>
+          </View>
+          {pendingTasks.map((t) => {
+            const bc = getTaskBadgeColor(t.type);
+            return (
+              <View key={t.id} style={styles.taskCard}>
+                <View style={[styles.taskBadge, { backgroundColor: bc.bg }]}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: bc.fg }} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.taskTitle}>{t.title}</Text>
+                  <Text style={styles.taskMeta}>{t.date}{t.apiary ? ` · ${t.apiary}` : ''}</Text>
+                </View>
+              </View>
+            );
+          })}
         </View>
-        {pendingTasks.map((t) => {
-          const bc = getTaskBadgeColor(t.type);
-          return (
-            <View key={t.id} style={styles.taskCard}>
-              <View style={[styles.taskBadge, { backgroundColor: bc.bg }]}>
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: bc.fg }} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.taskTitle}>{t.title}</Text>
-                <Text style={styles.taskMeta}>{t.date} · {t.apiary}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
+      )}
     </ScrollView>
   );
 }

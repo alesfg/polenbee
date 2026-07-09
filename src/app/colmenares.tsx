@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import {
-  Animated,
+  ActivityIndicator,
   Modal,
   ScrollView,
   StyleSheet,
@@ -12,7 +12,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TAB_BAR_HEIGHT } from '@/constants/theme';
-import { APIARIES, HIVES, Inspection, HiveStatus } from '@/data/mockData';
+import { HiveStatus } from '@/data/mockData';
+import { useApiaries } from '@/hooks/useApiaries';
+import { useHives } from '@/hooks/useHives';
+import { useInspections } from '@/hooks/useInspections';
 
 type InspectionDraft = {
   queenSeen: 'Sí' | 'No' | '';
@@ -25,6 +28,10 @@ type InspectionDraft = {
   notes: string;
 };
 
+const emptyDraft: InspectionDraft = {
+  queenSeen: '', brood: '', honey: '', pollen: '', varroa: '', temperament: '', loque: false, notes: '',
+};
+
 function statusColors(status: HiveStatus) {
   if (status === 'Fuerte') return { fg: Colors.statusFuerteFg, bg: Colors.statusFuerteBg };
   if (status === 'Media') return { fg: Colors.statusMediaFg, bg: Colors.statusMediaBg };
@@ -32,16 +39,9 @@ function statusColors(status: HiveStatus) {
 }
 
 function PillSelector<T extends string>({
-  label,
-  options,
-  value,
-  onSelect,
-  colorMap,
+  label, options, value, onSelect, colorMap,
 }: {
-  label: string;
-  options: T[];
-  value: T | '';
-  onSelect: (v: T) => void;
+  label: string; options: readonly T[]; value: T | ''; onSelect: (v: T) => void;
   colorMap?: (v: T) => { fg: string; bg: string };
 }) {
   return (
@@ -54,10 +54,7 @@ function PillSelector<T extends string>({
           return (
             <TouchableOpacity
               key={opt}
-              style={[
-                styles.pill,
-                selected && { backgroundColor: cm ? cm.bg : Colors.honeyFaint, borderColor: cm ? cm.fg : Colors.honeyDark },
-              ]}
+              style={[styles.pill, selected && { backgroundColor: cm ? cm.bg : Colors.honeyFaint, borderColor: cm ? cm.fg : Colors.honeyDark }]}
               onPress={() => onSelect(opt)}
             >
               <Text style={[styles.pillText, selected && { color: cm ? cm.fg : Colors.honeyDark, fontFamily: 'NunitoSans-Bold' }]}>
@@ -75,16 +72,7 @@ function MapPlaceholder() {
   return (
     <View style={styles.mapArea}>
       {Array.from({ length: 6 }).map((_, i) => (
-        <View
-          key={i}
-          style={[
-            styles.mapStripe,
-            {
-              top: i * 20 - 10,
-              backgroundColor: i % 2 === 0 ? '#D4C9B0' : '#C8BC9E',
-            },
-          ]}
-        />
+        <View key={i} style={[styles.mapStripe, { top: i * 20 - 10, backgroundColor: i % 2 === 0 ? '#D4C9B0' : '#C8BC9E' }]} />
       ))}
       <View style={styles.mapPin}>
         <View style={styles.mapPinHead} />
@@ -98,40 +86,28 @@ export default function ColmenaresScreen() {
   const insets = useSafeAreaInsets();
   const [apiaryId, setApiaryId] = useState<string | null>(null);
   const [hiveId, setHiveId] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [extraInspections, setExtraInspections] = useState<Record<string, Inspection[]>>({});
-  const [draft, setDraft] = useState<InspectionDraft>({
-    queenSeen: '', brood: '', honey: '', pollen: '', varroa: '', temperament: '', loque: false, notes: '',
-  });
+  const [showInspForm, setShowInspForm] = useState(false);
+  const [showApiaryForm, setShowApiaryForm] = useState(false);
+  const [showHiveForm, setShowHiveForm] = useState(false);
+  const [draft, setDraft] = useState<InspectionDraft>(emptyDraft);
 
-  const apiary = APIARIES.find((a) => a.id === apiaryId);
-  const hives = HIVES.filter((h) => h.apiaryId === apiaryId);
-  const hive = HIVES.find((h) => h.id === hiveId);
-  const hiveInspections = hive ? [...(extraInspections[hive.id] ?? []), ...hive.inspections] : [];
+  // Apiary form state
+  const [newApiaryName, setNewApiaryName] = useState('');
+  const [newApiaryLocation, setNewApiaryLocation] = useState('');
 
+  // Hive form state
+  const [newHiveCode, setNewHiveCode] = useState('');
+  const [newHiveType, setNewHiveType] = useState<'Langstroth' | 'Layens' | 'Dadant'>('Langstroth');
+  const [newHiveQueenAge, setNewHiveQueenAge] = useState('');
+  const [newHiveMarking, setNewHiveMarking] = useState('');
+
+  const { apiaries, loading: apiariesLoading, addApiary } = useApiaries();
+  const { hives, loading: hivesLoading, addHive } = useHives(apiaryId);
+  const { inspections, addInspection } = useInspections(hiveId);
+
+  const apiary = apiaries.find((a) => a.id === apiaryId);
+  const hive = hives.find((h) => h.id === hiveId);
   const sc = hive ? statusColors(hive.status) : null;
-
-  function saveInspection() {
-    if (!hive) return;
-    const newInsp: Inspection = {
-      id: `new-${Date.now()}`,
-      date: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-      queenSeen: draft.queenSeen || 'Sí',
-      brood: draft.brood || 'Moderada',
-      honey: draft.honey || 'Medias',
-      pollen: draft.pollen || 'Medias',
-      varroa: draft.varroa || 'Ninguno',
-      loque: draft.loque,
-      temperament: draft.temperament || 'Normal',
-      notes: draft.notes,
-    };
-    setExtraInspections((prev) => ({
-      ...prev,
-      [hive.id]: [newInsp, ...(prev[hive.id] ?? [])],
-    }));
-    setShowForm(false);
-    setDraft({ queenSeen: '', brood: '', honey: '', pollen: '', varroa: '', temperament: '', loque: false, notes: '' });
-  }
 
   function varroaColorMap(v: string) {
     if (v === 'Ninguno') return { fg: Colors.statusFuerteFg, bg: Colors.statusFuerteBg };
@@ -139,185 +115,226 @@ export default function ColmenaresScreen() {
     return { fg: Colors.statusDebilFg, bg: Colors.statusDebilBg };
   }
 
+  async function saveInspection() {
+    if (!hive) return;
+    await addInspection(hive.id, {
+      queenSeen: draft.queenSeen !== 'No',
+      brood: draft.brood || 'Moderada',
+      honey: draft.honey || 'Medias',
+      pollen: draft.pollen || 'Medias',
+      varroa: draft.varroa || 'Ninguno',
+      loque: draft.loque,
+      temperament: draft.temperament || 'Normal',
+      notes: draft.notes,
+    });
+    setShowInspForm(false);
+    setDraft(emptyDraft);
+  }
+
+  async function saveApiary() {
+    if (!newApiaryName) return;
+    await addApiary(newApiaryName, newApiaryLocation);
+    setNewApiaryName(''); setNewApiaryLocation('');
+    setShowApiaryForm(false);
+  }
+
+  async function saveHive() {
+    if (!apiaryId || !newHiveCode) return;
+    await addHive(apiaryId, newHiveCode, newHiveType, parseInt(newHiveQueenAge) || 2, newHiveMarking);
+    setNewHiveCode(''); setNewHiveQueenAge(''); setNewHiveMarking(''); setNewHiveType('Langstroth');
+    setShowHiveForm(false);
+  }
+
+  const loading = apiariesLoading || hivesLoading;
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.topHeader}>
         {(apiaryId || hiveId) && (
-          <TouchableOpacity
-            onPress={() => {
-              if (hiveId) setHiveId(null);
-              else setApiaryId(null);
-            }}
-            style={styles.backBtn}
-          >
+          <TouchableOpacity onPress={() => { if (hiveId) setHiveId(null); else setApiaryId(null); }} style={styles.backBtn}>
             <Text style={styles.backText}>‹ Atrás</Text>
           </TouchableOpacity>
         )}
-        <Text style={styles.screenTitle}>
-          {hive ? `Colmena ${hive.code}` : apiary ? apiary.name : 'Colmenares'}
-        </Text>
-        {apiary && !hive && <Text style={styles.screenSubtitle}>{apiary.location}</Text>}
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.screenTitle}>
+              {hive ? `Colmena ${hive.code}` : apiary ? apiary.name : 'Colmenares'}
+            </Text>
+            {apiary && !hive && <Text style={styles.screenSubtitle}>{apiary.location}</Text>}
+          </View>
+          {!hiveId && (
+            <TouchableOpacity
+              style={styles.addBtn}
+              onPress={() => hiveId ? null : apiaryId ? setShowHiveForm(true) : setShowApiaryForm(true)}
+            >
+              <Text style={styles.addBtnText}>+</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + Spacing.lg }]}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* LIST VIEW */}
-        {!apiaryId && APIARIES.map((a) => (
-          <TouchableOpacity key={a.id} style={styles.apiaryCard} onPress={() => setApiaryId(a.id)} activeOpacity={0.85}>
-            <MapPlaceholder />
-            <View style={styles.apiaryCardBottom}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.apiaryName}>{a.name}</Text>
-                <Text style={styles.apiaryLocation}>{a.location}</Text>
-              </View>
-              <View style={styles.hivePill}>
-                <Text style={styles.hivePillText}>{a.hiveCount} colmenas</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-
-        {/* APIARY DETAIL */}
-        {apiaryId && !hiveId && hives.map((h) => {
-          const s = statusColors(h.status);
-          return (
-            <TouchableOpacity key={h.id} style={styles.hiveCard} onPress={() => setHiveId(h.id)} activeOpacity={0.85}>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Text style={styles.hiveCode}>{h.code}</Text>
-                  <View style={[styles.statusPill, { backgroundColor: s.bg }]}>
-                    <Text style={[styles.statusPillText, { color: s.fg }]}>{h.status}</Text>
-                  </View>
+      {loading && !hiveId ? (
+        <View style={styles.loadingState}>
+          <ActivityIndicator color={Colors.honeyPrimary} size="large" />
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + Spacing.lg }]} showsVerticalScrollIndicator={false}>
+          {/* LIST VIEW */}
+          {!apiaryId && (
+            <>
+              {apiaries.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <View style={styles.emptyHex} />
+                  <Text style={styles.emptyTitle}>Aún no tienes colmenares</Text>
+                  <TouchableOpacity style={styles.emptyBtn} onPress={() => setShowApiaryForm(true)}>
+                    <Text style={styles.emptyBtnText}>Añadir colmenar</Text>
+                  </TouchableOpacity>
                 </View>
-                <Text style={styles.hiveMeta}>{h.type} · Reina {h.queenAge} año{h.queenAge !== 1 ? 's' : ''} · Últ. {h.lastInspection}</Text>
-              </View>
-              <Text style={styles.chevron}>›</Text>
-            </TouchableOpacity>
-          );
-        })}
-
-        {/* HIVE DETAIL */}
-        {hive && sc && (
-          <>
-            <View style={styles.infoGrid}>
-              {[
-                { label: 'Tipo', value: hive.type },
-                { label: 'Estado', value: hive.status },
-                { label: 'Edad de la reina', value: `${hive.queenAge} año${hive.queenAge !== 1 ? 's' : ''}` },
-                { label: 'Marcaje', value: hive.queenMark },
-              ].map((item) => (
-                <View key={item.label} style={styles.infoCell}>
-                  <Text style={styles.infoCellLabel}>{item.label}</Text>
-                  {item.label === 'Estado' ? (
-                    <View style={[styles.statusPill, { backgroundColor: sc.bg, alignSelf: 'flex-start' }]}>
-                      <Text style={[styles.statusPillText, { color: sc.fg }]}>{item.value}</Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.infoCellValue}>{item.value}</Text>
-                  )}
-                </View>
-              ))}
-            </View>
-
-            <TouchableOpacity style={styles.newInspBtn} onPress={() => setShowForm(true)}>
-              <Text style={styles.newInspBtnText}>+ Nueva inspección</Text>
-            </TouchableOpacity>
-
-            <Text style={styles.sectionTitle}>Historial de inspecciones</Text>
-
-            {hiveInspections.map((ins) => {
-              const tc = ins.temperament === 'Tranquila'
-                ? { fg: Colors.statusFuerteFg, bg: Colors.statusFuerteBg }
-                : ins.temperament === 'Agresiva'
-                ? { fg: Colors.statusDebilFg, bg: Colors.statusDebilBg }
-                : { fg: Colors.statusMediaFg, bg: Colors.statusMediaBg };
-              const vc = ins.varroa === 'Ninguno'
-                ? { fg: Colors.statusFuerteFg, bg: Colors.statusFuerteBg }
-                : ins.varroa === 'Leve'
-                ? { fg: Colors.statusMediaFg, bg: Colors.statusMediaBg }
-                : { fg: Colors.statusDebilFg, bg: Colors.statusDebilBg };
-
-              return (
-                <View key={ins.id} style={styles.inspCard}>
-                  <View style={styles.inspCardHeader}>
-                    <Text style={styles.inspDate}>{ins.date}</Text>
-                    <View style={[styles.statusPill, { backgroundColor: tc.bg }]}>
-                      <Text style={[styles.statusPillText, { color: tc.fg }]}>{ins.temperament}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.chipRow}>
-                    {[
-                      { label: `Reina ${ins.queenSeen}`, color: ins.queenSeen === 'Sí' ? Colors.statusFuerteBg : Colors.statusDebilBg, fg: ins.queenSeen === 'Sí' ? Colors.statusFuerteFg : Colors.statusDebilFg },
-                      { label: `Cría ${ins.brood}`, color: Colors.honeyFaint, fg: Colors.honeyDark },
-                      { label: `Miel ${ins.honey}`, color: Colors.honeySoft, fg: Colors.honeyDark },
-                      { label: `Polen ${ins.pollen}`, color: Colors.greenLight, fg: Colors.greenDark },
-                      { label: `Varroa ${ins.varroa}`, color: vc.bg, fg: vc.fg },
-                    ].map((chip) => (
-                      <View key={chip.label} style={[styles.chip, { backgroundColor: chip.color }]}>
-                        <Text style={[styles.chipText, { color: chip.fg }]}>{chip.label}</Text>
+              ) : (
+                apiaries.map((a) => (
+                  <TouchableOpacity key={a.id} style={styles.apiaryCard} onPress={() => setApiaryId(a.id)} activeOpacity={0.85}>
+                    <MapPlaceholder />
+                    <View style={styles.apiaryCardBottom}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.apiaryName}>{a.name}</Text>
+                        <Text style={styles.apiaryLocation}>{a.location}</Text>
                       </View>
-                    ))}
-                  </View>
-                  {ins.notes ? <Text style={styles.inspNotes}>{ins.notes}</Text> : null}
+                      <View style={styles.hivePill}>
+                        <Text style={styles.hivePillText}>{a.hiveCount} colmenas</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </>
+          )}
+
+          {/* APIARY DETAIL */}
+          {apiaryId && !hiveId && (
+            <>
+              {hives.length === 0 ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyTitle}>Sin colmenas en este colmenar</Text>
+                  <TouchableOpacity style={styles.emptyBtn} onPress={() => setShowHiveForm(true)}>
+                    <Text style={styles.emptyBtnText}>Añadir colmena</Text>
+                  </TouchableOpacity>
                 </View>
-              );
-            })}
-          </>
-        )}
-      </ScrollView>
+              ) : (
+                hives.map((h) => {
+                  const s = statusColors(h.status);
+                  return (
+                    <TouchableOpacity key={h.id} style={styles.hiveCard} onPress={() => setHiveId(h.id)} activeOpacity={0.85}>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                          <Text style={styles.hiveCode}>{h.code}</Text>
+                          <View style={[styles.statusPill, { backgroundColor: s.bg }]}>
+                            <Text style={[styles.statusPillText, { color: s.fg }]}>{h.status}</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.hiveMeta}>
+                          {h.type} · Reina {h.queenAge} año{h.queenAge !== 1 ? 's' : ''}{h.lastInspection ? ` · Últ. ${h.lastInspection}` : ''}
+                        </Text>
+                      </View>
+                      <Text style={styles.chevron}>›</Text>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </>
+          )}
+
+          {/* HIVE DETAIL */}
+          {hive && sc && (
+            <>
+              <View style={styles.infoGrid}>
+                {[
+                  { label: 'Tipo', value: hive.type },
+                  { label: 'Estado', value: hive.status },
+                  { label: 'Edad de la reina', value: `${hive.queenAge} año${hive.queenAge !== 1 ? 's' : ''}` },
+                  { label: 'Marcaje', value: hive.queenMark || '—' },
+                ].map((item) => (
+                  <View key={item.label} style={styles.infoCell}>
+                    <Text style={styles.infoCellLabel}>{item.label}</Text>
+                    {item.label === 'Estado' ? (
+                      <View style={[styles.statusPill, { backgroundColor: sc.bg, alignSelf: 'flex-start' }]}>
+                        <Text style={[styles.statusPillText, { color: sc.fg }]}>{item.value}</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.infoCellValue}>{item.value}</Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+
+              <TouchableOpacity style={styles.newInspBtn} onPress={() => setShowInspForm(true)}>
+                <Text style={styles.newInspBtnText}>+ Nueva inspección</Text>
+              </TouchableOpacity>
+
+              <Text style={styles.sectionTitle}>Historial de inspecciones</Text>
+
+              {inspections.length === 0 && (
+                <Text style={[styles.hiveMeta, { textAlign: 'center', marginTop: 8 }]}>Sin inspecciones registradas</Text>
+              )}
+
+              {inspections.map((ins) => {
+                const tc = ins.temperament === 'Tranquila'
+                  ? { fg: Colors.statusFuerteFg, bg: Colors.statusFuerteBg }
+                  : ins.temperament === 'Agresiva'
+                  ? { fg: Colors.statusDebilFg, bg: Colors.statusDebilBg }
+                  : { fg: Colors.statusMediaFg, bg: Colors.statusMediaBg };
+                const vc = ins.varroa === 'Ninguno'
+                  ? { fg: Colors.statusFuerteFg, bg: Colors.statusFuerteBg }
+                  : ins.varroa === 'Leve'
+                  ? { fg: Colors.statusMediaFg, bg: Colors.statusMediaBg }
+                  : { fg: Colors.statusDebilFg, bg: Colors.statusDebilBg };
+
+                return (
+                  <View key={ins.id} style={styles.inspCard}>
+                    <View style={styles.inspCardHeader}>
+                      <Text style={styles.inspDate}>{ins.date}</Text>
+                      <View style={[styles.statusPill, { backgroundColor: tc.bg }]}>
+                        <Text style={[styles.statusPillText, { color: tc.fg }]}>{ins.temperament}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.chipRow}>
+                      {[
+                        { label: `Reina ${ins.queenSeen}`, color: ins.queenSeen === 'Sí' ? Colors.statusFuerteBg : Colors.statusDebilBg, fg: ins.queenSeen === 'Sí' ? Colors.statusFuerteFg : Colors.statusDebilFg },
+                        { label: `Cría ${ins.brood}`, color: Colors.honeyFaint, fg: Colors.honeyDark },
+                        { label: `Miel ${ins.honey}`, color: Colors.honeySoft, fg: Colors.honeyDark },
+                        { label: `Polen ${ins.pollen}`, color: Colors.greenLight, fg: Colors.greenDark },
+                        { label: `Varroa ${ins.varroa}`, color: vc.bg, fg: vc.fg },
+                      ].map((chip) => (
+                        <View key={chip.label} style={[styles.chip, { backgroundColor: chip.color }]}>
+                          <Text style={[styles.chipText, { color: chip.fg }]}>{chip.label}</Text>
+                        </View>
+                      ))}
+                    </View>
+                    {ins.notes ? <Text style={styles.inspNotes}>{ins.notes}</Text> : null}
+                  </View>
+                );
+              })}
+            </>
+          )}
+        </ScrollView>
+      )}
 
       {/* INSPECTION FORM MODAL */}
-      <Modal visible={showForm} animationType="slide" transparent>
+      <Modal visible={showInspForm} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
             <View style={styles.dragHandle} />
             <Text style={styles.sheetTitle}>Nueva inspección</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <PillSelector
-                label="¿Se ha visto a la reina?"
-                options={['Sí', 'No'] as const}
-                value={draft.queenSeen}
-                onSelect={(v) => setDraft((d) => ({ ...d, queenSeen: v }))}
-                colorMap={(v) => v === 'Sí' ? { fg: Colors.statusFuerteFg, bg: Colors.statusFuerteBg } : { fg: Colors.statusDebilFg, bg: Colors.statusDebilBg }}
-              />
-              <PillSelector
-                label="Cría"
-                options={['Abundante', 'Moderada', 'Escasa', 'Ninguna'] as const}
-                value={draft.brood}
-                onSelect={(v) => setDraft((d) => ({ ...d, brood: v }))}
-              />
-              <PillSelector
-                label="Reservas de miel"
-                options={['Altas', 'Medias', 'Bajas'] as const}
-                value={draft.honey}
-                onSelect={(v) => setDraft((d) => ({ ...d, honey: v }))}
-              />
-              <PillSelector
-                label="Reservas de polen"
-                options={['Altas', 'Medias', 'Bajas'] as const}
-                value={draft.pollen}
-                onSelect={(v) => setDraft((d) => ({ ...d, pollen: v }))}
-              />
-              <PillSelector
-                label="Varroa"
-                options={['Ninguno', 'Leve', 'Moderado', 'Alto'] as const}
-                value={draft.varroa}
-                onSelect={(v) => setDraft((d) => ({ ...d, varroa: v }))}
-                colorMap={varroaColorMap as (v: 'Ninguno' | 'Leve' | 'Moderado' | 'Alto') => { fg: string; bg: string }}
-              />
-              <PillSelector
-                label="Temperamento"
-                options={['Tranquila', 'Normal', 'Agresiva'] as const}
-                value={draft.temperament}
-                onSelect={(v) => setDraft((d) => ({ ...d, temperament: v }))}
-              />
-              <TouchableOpacity
-                style={styles.loqueRow}
-                onPress={() => setDraft((d) => ({ ...d, loque: !d.loque }))}
-              >
+              <PillSelector label="¿Se ha visto a la reina?" options={['Sí', 'No'] as const} value={draft.queenSeen} onSelect={(v) => setDraft((d) => ({ ...d, queenSeen: v }))}
+                colorMap={(v) => v === 'Sí' ? { fg: Colors.statusFuerteFg, bg: Colors.statusFuerteBg } : { fg: Colors.statusDebilFg, bg: Colors.statusDebilBg }} />
+              <PillSelector label="Cría" options={['Abundante', 'Moderada', 'Escasa', 'Ninguna'] as const} value={draft.brood} onSelect={(v) => setDraft((d) => ({ ...d, brood: v }))} />
+              <PillSelector label="Reservas de miel" options={['Altas', 'Medias', 'Bajas'] as const} value={draft.honey} onSelect={(v) => setDraft((d) => ({ ...d, honey: v }))} />
+              <PillSelector label="Reservas de polen" options={['Altas', 'Medias', 'Bajas'] as const} value={draft.pollen} onSelect={(v) => setDraft((d) => ({ ...d, pollen: v }))} />
+              <PillSelector label="Varroa" options={['Ninguno', 'Leve', 'Moderado', 'Alto'] as const} value={draft.varroa} onSelect={(v) => setDraft((d) => ({ ...d, varroa: v }))}
+                colorMap={varroaColorMap as (v: 'Ninguno' | 'Leve' | 'Moderado' | 'Alto') => { fg: string; bg: string }} />
+              <PillSelector label="Temperamento" options={['Tranquila', 'Normal', 'Agresiva'] as const} value={draft.temperament} onSelect={(v) => setDraft((d) => ({ ...d, temperament: v }))} />
+              <TouchableOpacity style={styles.loqueRow} onPress={() => setDraft((d) => ({ ...d, loque: !d.loque }))}>
                 <View style={[styles.checkbox, draft.loque && { backgroundColor: Colors.statusDebilFg, borderColor: Colors.statusDebilFg }]}>
                   {draft.loque && <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>✓</Text>}
                 </View>
@@ -334,7 +351,7 @@ export default function ColmenaresScreen() {
                 onChangeText={(t) => setDraft((d) => ({ ...d, notes: t }))}
               />
               <View style={styles.sheetButtons}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowForm(false)}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => { setShowInspForm(false); setDraft(emptyDraft); }}>
                   <Text style={styles.cancelBtnText}>Cancelar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.saveBtn} onPress={saveInspection}>
@@ -342,6 +359,60 @@ export default function ColmenaresScreen() {
                 </TouchableOpacity>
               </View>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* NUEVO COLMENAR MODAL */}
+      <Modal visible={showApiaryForm} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+            <View style={styles.dragHandle} />
+            <Text style={styles.sheetTitle}>Nuevo colmenar</Text>
+            <Text style={styles.fieldLabel}>Nombre</Text>
+            <TextInput style={styles.formInput} value={newApiaryName} onChangeText={setNewApiaryName} placeholder="Ej. Valle del Jerte" placeholderTextColor={Colors.textMuted} />
+            <Text style={styles.fieldLabel}>Ubicación</Text>
+            <TextInput style={styles.formInput} value={newApiaryLocation} onChangeText={setNewApiaryLocation} placeholder="Ej. Cáceres, Extremadura" placeholderTextColor={Colors.textMuted} />
+            <View style={[styles.sheetButtons, { marginTop: 8 }]}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowApiaryForm(false)}>
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={saveApiary}>
+                <Text style={styles.saveBtnText}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* NUEVA COLMENA MODAL */}
+      <Modal visible={showHiveForm} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+            <View style={styles.dragHandle} />
+            <Text style={styles.sheetTitle}>Nueva colmena</Text>
+            <Text style={styles.fieldLabel}>Código</Text>
+            <TextInput style={styles.formInput} value={newHiveCode} onChangeText={setNewHiveCode} placeholder="Ej. C-01" placeholderTextColor={Colors.textMuted} />
+            <Text style={styles.fieldLabel}>Tipo</Text>
+            <View style={styles.pillRow}>
+              {(['Langstroth', 'Layens', 'Dadant'] as const).map((t) => (
+                <TouchableOpacity key={t} style={[styles.pill, newHiveType === t && { backgroundColor: Colors.honeyFaint, borderColor: Colors.honeyDark }]} onPress={() => setNewHiveType(t)}>
+                  <Text style={[styles.pillText, newHiveType === t && { color: Colors.honeyDark, fontFamily: 'NunitoSans-Bold' }]}>{t}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Edad de la reina (años)</Text>
+            <TextInput style={styles.formInput} value={newHiveQueenAge} onChangeText={setNewHiveQueenAge} keyboardType="number-pad" placeholder="Ej. 2" placeholderTextColor={Colors.textMuted} />
+            <Text style={styles.fieldLabel}>Marcaje</Text>
+            <TextInput style={styles.formInput} value={newHiveMarking} onChangeText={setNewHiveMarking} placeholder="Ej. Blanco · 2024" placeholderTextColor={Colors.textMuted} />
+            <View style={[styles.sheetButtons, { marginTop: 8 }]}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowHiveForm(false)}>
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={saveHive}>
+                <Text style={styles.saveBtnText}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -354,8 +425,19 @@ const styles = StyleSheet.create({
   topHeader: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, paddingBottom: Spacing.md },
   backBtn: { marginBottom: 4 },
   backText: { color: Colors.honeyDark, fontSize: 15, fontFamily: 'NunitoSans-SemiBold' },
+  headerRow: { flexDirection: 'row', alignItems: 'center' },
   screenTitle: { fontFamily: 'Nunito-Black', fontSize: 22, color: Colors.textPrimary },
   screenSubtitle: { fontSize: 13, color: Colors.textMuted, marginTop: 2, fontFamily: 'NunitoSans' },
+  addBtn: { width: 36, height: 36, borderRadius: 12, backgroundColor: Colors.honeyFaint, alignItems: 'center', justifyContent: 'center' },
+  addBtnText: { fontSize: 22, color: Colors.honeyDark, lineHeight: 28 },
+
+  loadingState: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  emptyState: { alignItems: 'center', paddingVertical: 40, gap: 12 },
+  emptyHex: { width: 64, height: 64, borderRadius: 12, backgroundColor: Colors.honeyFaint, transform: [{ rotate: '30deg' }] },
+  emptyTitle: { fontFamily: 'NunitoSans-SemiBold', fontSize: 15, color: Colors.textMuted },
+  emptyBtn: { backgroundColor: Colors.honeyPrimary, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 12 },
+  emptyBtnText: { color: '#fff', fontFamily: 'Nunito-ExtraBold', fontSize: 14 },
+
   content: { paddingHorizontal: Spacing.lg, paddingTop: 4 },
 
   apiaryCard: { backgroundColor: Colors.card, borderRadius: 18, marginBottom: 10, overflow: 'hidden', shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.07, shadowRadius: 10, elevation: 3 },
@@ -407,6 +489,7 @@ const styles = StyleSheet.create({
   checkbox: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: Colors.border2, alignItems: 'center', justifyContent: 'center' },
   loqueText: { fontSize: 13, color: Colors.textPrimary, fontFamily: 'NunitoSans' },
   notesInput: { backgroundColor: Colors.bg, borderRadius: 12, padding: 12, fontSize: 13, color: Colors.textPrimary, fontFamily: 'NunitoSans', minHeight: 72, marginBottom: 20, textAlignVertical: 'top' },
+  formInput: { backgroundColor: Colors.honeyFaint, borderRadius: 12, padding: 14, fontSize: 14, color: Colors.textPrimary, fontFamily: 'NunitoSans', marginBottom: 14 },
   sheetButtons: { flexDirection: 'row', gap: 10 },
   cancelBtn: { flex: 1, padding: 14, borderRadius: 14, backgroundColor: Colors.honeyFaint, alignItems: 'center' },
   cancelBtnText: { color: Colors.honeyDark, fontFamily: 'Nunito-ExtraBold', fontSize: 15 },
