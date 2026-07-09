@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "polenbee",
+    "name": "PolenBee",
     "slug": "polenbee",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -26,9 +26,16 @@
     "plugins": [
       "expo-router",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "PolenBee necesita acceso a tus fotos para analizar el polen.",
+          "cameraPermission": "PolenBee necesita acceso a tu cámara para fotografiar las abejas."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#FBF3E3",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }

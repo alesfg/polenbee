@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #EFE6D3; }
+    @keyframes pb-spin { to { transform: rotate(360deg); } }
+    @keyframes pb-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  </style>
+</helmet>
+
+<div style="display:flex; justify-content:center; padding: 40px 20px;">
+<x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" width="402" height="874" hint-size="402,874">
+  <div style="height:100%; display:flex; flex-direction:column; position:relative; background:#FBF3E3; font-family:'Nunito Sans',-apple-system,system-ui,sans-serif; overflow:hidden;">
+
+    <div style="height:56px; flex-shrink:0;"></div>
+
+    <div style="flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom: 104px;">
+
+      <!-- ============ HOME ============ -->
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+        <div data-screen-label="Inicio" style="padding: 4px 20px 8px;">
+
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;">
+            <div>
+              <div style="font-family:'Nunito',sans-serif; font-weight:900; font-size:24px; color:#3A2C1D;">Hola, Elena</div>
+              <div style="font-size:14px; color:#9A8A70; margin-top:2px;">{{ todayLabel }}</div>
+            </div>
+            <div style="width:44px; height:44px; border-radius:14px; background:#F7D9A0; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 2C9 2 7 5 7 8c0 2 1 3 1 3s-4 1-4 6c0 2.5 2 4 4 4h8c2 0 4-1.5 4-4 0-5-4-6-4-6s1-1 1-3c0-3-2-6-5-6z" fill="#B9691F"/><path d="M8 11h8M8 14h8M8 17h8" stroke="#FBF3E3" stroke-width="1.3"/></svg>
+            </div>
+          </div>
+
+          <!-- weather widget -->
+          <div style="background:linear-gradient(135deg,#E3963E,#C97A24); border-radius:22px; padding:18px 20px; color:#fff; margin-bottom:16px; box-shadow:0 8px 20px rgba(201,122,36,0.25);">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <div>
+                <div style="font-size:38px; font-weight:800; font-family:'Nunito',sans-serif; line-height:1;">{{ weather.temp }}°</div>
+                <div style="font-size:14px; opacity:0.9; margin-top:4px;">{{ weather.condition }} · Viento {{ weather.wind }}</div>
+              </div>
+              <svg width="52" height="52" viewBox="0 0 52 52" fill="none"><circle cx="26" cy="26" r="12" fill="#FFE4A8"/><g stroke="#FFE4A8" stroke-width="2.5" stroke-linecap="round"><path d="M26 4v6M26 42v6M4 26h6M42 26h6M11 11l4.2 4.2M36.8 36.8L41 41M11 41l4.2-4.2M36.8 15.2L41 11"/></g></svg>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:14px; background:rgba(255,255,255,0.18); border-radius:12px; padding:8px 12px;">
+              <div style="width:8px; height:8px; border-radius:50%; background:#EAF7C9;"></div>
+              <span style="font-size:13px; font-weight:700;">Índice de pecoreo: {{ weather.forageIndex }}</span>
+              <span style="font-size:12px; opacity:0.85; margin-left:auto;">Humedad {{ weather.humidity }}%</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:14px;">
+              <sc-for list="{{ weather.forecast }}" as="f" hint-placeholder-count="4">
+                <div style="text-align:center; flex:1;">
+                  <div style="font-size:12px; opacity:0.85;">{{ f.day }}</div>
+                  <div style="font-size:15px; font-weight:700; margin-top:4px;">{{ f.temp }}°</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <!-- stats -->
+          <div style="display:flex; gap:10px; margin-bottom:16px;">
+            <div style="flex:1; background:#fff; border-radius:16px; padding:12px 10px; text-align:center; box-shadow:0 2px 8px rgba(58,44,29,0.06);">
+              <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:20px; color:#B9691F;">{{ stats.hives }}</div>
+              <div style="font-size:11px; color:#9A8A70; margin-top:2px;">Colmenas</div>
+            </div>
+            <div style="flex:1; background:#fff; border-radius:16px; padding:12px 10px; text-align:center; box-shadow:0 2px 8px rgba(58,44,29,0.06);">
+              <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:20px; color:#5B7F42;">{{ stats.apiaries }}</div>
+              <div style="font-size:11px; color:#9A8A70; margin-top:2px;">Colmenares</div>
+            </div>
+            <div style="flex:1; background:#fff; border-radius:16px; padding:12px 10px; text-align:center; box-shadow:0 2px 8px rgba(58,44,29,0.06);">
+              <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:20px; color:#B9691F;">{{ stats.kg }} kg</div>
+              <div style="font-size:11px; color:#9A8A70; margin-top:2px;">Miel temporada</div>
+            </div>
+          </div>
+
+          <!-- pollen CTA -->
+          <div onClick="{{ goToPollen }}" style="background:#3F5C2E; border-radius:20px; padding:16px 18px; display:flex; align-items:center; gap:14px; margin-bottom:16px; cursor:pointer;">
+            <div style="width:46px; height:46px; border-radius:14px; background:#5B7F42; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.2" fill="#FCEBC9"/><g fill="#FCEBC9"><ellipse cx="12" cy="4.5" rx="2.6" ry="3.6"/><ellipse cx="12" cy="19.5" rx="2.6" ry="3.6"/><ellipse cx="4.5" cy="12" rx="3.6" ry="2.6"/><ellipse cx="19.5" cy="12" rx="3.6" ry="2.6"/></g></svg>
+            </div>
+            <div style="flex:1;">
+              <div style="color:#fff; font-weight:800; font-family:'Nunito',sans-serif; font-size:15px;">Analiza el polen de tus abejas</div>
+              <div style="color:#CFE0BE; font-size:12.5px; margin-top:2px;">Descubre qué están pecoreando ahora mismo</div>
+            </div>
+            <svg width="9" height="15" viewBox="0 0 8 14"><path d="M1 1l6 6-6 6" stroke="#CFE0BE" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+
+          <!-- attention -->
+          <sc-if value="{{ hasAttentionHives }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-bottom:16px;">
+              <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:15px; color:#3A2C1D; margin-bottom:8px;">Requieren atención</div>
+              <sc-for list="{{ attentionHives }}" as="h" hint-placeholder-count="2">
+                <div onClick="{{ h.onOpen }}" style="background:#fff; border-radius:16px; padding:12px 14px; display:flex; align-items:center; gap:12px; margin-bottom:8px; border-left:4px solid {{ h.statusFg }}; cursor:pointer;">
+                  <div style="flex:1;">
+                    <div style="font-weight:700; font-size:14px; color:#3A2C1D;">{{ h.code }} · {{ h.apiaryName }}</div>
+                    <div style="font-size:12.5px; color:#9A8A70; margin-top:2px;">{{ h.reason }}</div>
+                  </div>
+                  <div style="font-size:11.5px; font-weight:700; color:{{ h.statusFg }}; background:{{ h.statusBg }}; padding:4px 10px; border-radius:100px;">{{ h.status }}</div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- upcoming tasks -->
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+            <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:15px; color:#3A2C1D;">Próximas tareas</div>
+            <div onClick="{{ goToCalendar }}" style="font-size:13px; color:#B9691F; font-weight:700; cursor:pointer;">Ver todas</div>
+          </div>
+          <sc-for list="{{ upcomingTasks }}" as="t" hint-placeholder-count="3">
+            <div style="background:#fff; border-radius:16px; padding:12px 14px; display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+              <div style="width:36px; height:36px; border-radius:11px; background:{{ t.iconBg }}; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:16px;">{{ t.icon }}</div>
+              <div style="flex:1;">
+                <div style="font-weight:700; font-size:13.5px; color:#3A2C1D;">{{ t.title }}</div>
+                <div style="font-size:12px; color:#9A8A70; margin-top:2px;">{{ t.date }} · {{ t.apiary }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- ============ APIARIES ============ -->
+      <sc-if value="{{ isApiaries }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="Colmenares">
+
+          <!-- LIST -->
+          <sc-if value="{{ showApiaryList }}" hint-placeholder-val="{{ true }}">
+            <div style="padding: 4px 20px 8px;">
+              <div style="font-family:'Nunito',sans-serif; font-weight:900; font-size:24px; color:#3A2C1D; margin-bottom:14px;">Colmenares</div>
+              <sc-for list="{{ apiaryCards }}" as="ap" hint-placeholder-count="3">
+                <div onClick="{{ ap.onOpen }}" style="background:#fff; border-radius:20px; overflow:hidden; margin-bottom:14px; box-shadow:0 4px 14px rgba(58,44,29,0.07); cursor:pointer;">
+                  <div style="height:84px; position:relative; background:repeating-linear-gradient(45deg,#DCE8C8,#DCE8C8 8px,#E7F0D8 8px,#E7F0D8 16px);">
+                    <svg width="26" height="34" viewBox="0 0 26 34" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-60%);"><path d="M13 0C5.8 0 0 5.8 0 13c0 9.5 13 21 13 21s13-11.5 13-21C26 5.8 20.2 0 13 0z" fill="#B9691F"/><circle cx="13" cy="13" r="5.5" fill="#FBF3E3"/></svg>
+                  </div>
+                  <div style="padding:12px 16px 14px; display:flex; align-items:center;">
+                    <div style="flex:1;">
+                      <div style="font-weight:800; font-family:'Nunito',sans-serif; font-size:15.5px; color:#3A2C1D;">{{ ap.name }}</div>
+                      <div style="font-size:12.5px; color:#9A8A70; margin-top:2px;">{{ ap.location }}</div>
+                    </div>
+                    <div style="font-size:12px; font-weight:700; color:#5B7F42; background:#EAF1DE; padding:5px 11px; border-radius:100px;">{{ ap.hiveCount }} colmenas</div>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <!-- APIARY DETAIL -->
+          <sc-if value="{{ showApiaryDetail }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="padding: 4px 20px 8px; display:flex; align-items:center; gap:10px;">
+                <div onClick="{{ backToApiaries }}" style="width:34px; height:34px; border-radius:10px; background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;">
+                  <svg width="8" height="14" viewBox="0 0 8 14"><path d="M7 1L1 7l6 6" stroke="#3A2C1D" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div>
+                  <div style="font-family:'Nunito',sans-serif; font-weight:900; font-size:19px; color:#3A2C1D;">{{ selApiary.name }}</div>
+                  <div style="font-size:12.5px; color:#9A8A70;">{{ selApiary.location }}</div>
+                </div>
+              </div>
+              <div style="padding: 8px 20px;">
+                <sc-for list="{{ selApiaryHives }}" as="h" hint-placeholder-count="3">
+                  <div onClick="{{ h.onOpen }}" style="background:#fff; border-radius:16px; padding:14px 16px; margin-bottom:10px; cursor:pointer; box-shadow:0 2px 8px rgba(58,44,29,0.06);">
+                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                      <div style="font-weight:800; font-family:'Nunito',sans-serif; font-size:15px; color:#3A2C1D;">{{ h.code }}</div>
+                      <div style="font-size:11.5px; font-weight:700; color:{{ h.statusFg }}; background:{{ h.statusBg }}; padding:4px 10px; border-radius:100px;">{{ h.status }}</div>
+                    </div>
+                    <div style="font-size:13px; color:#9A8A70; margin-top:6px;">{{ h.type }} · Reina {{ h.queenAge }} años · Últ. inspección {{ h.lastInspection }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- HIVE DETAIL -->
+          <sc-if value="{{ showHiveDetail }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="padding: 4px 20px 8px; display:flex; align-items:center; gap:10px;">
+                <div onClick="{{ backToApiary }}" style="width:34px; height:34px; border-radius:10px; background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0;">
+                  <svg width="8" height="14" viewBox="0 0 8 14"><path d="M7 1L1 7l6 6" stroke="#3A2C1D" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <div style="font-family:'Nunito',sans-serif; font-weight:900; font-size:19px; color:#3A2C1D;">Colmena {{ selHive.code }}</div>
+              </div>
+
+              <div style="padding: 6px 20px;">
+                <div style="background:#fff; border-radius:18px; padding:16px 18px; margin-bottom:14px; box-shadow:0 2px 8px rgba(58,44,29,0.06);">
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+                    <div>
+                      <div style="font-size:11.5px; color:#9A8A70; text-transform:uppercase; letter-spacing:0.03em;">Tipo</div>
+                      <div style="font-weight:700; font-size:14.5px; color:#3A2C1D; margin-top:3px;">{{ selHive.type }}</div>
+                    </div>
+                    <div>
+                      <div style="font-size:11.5px; color:#9A8A70; text-transform:uppercase; letter-spacing:0.03em;">Estado</div>
+                      <div style="font-weight:700; font-size:14.5px; margin-top:3px; color:{{ selHive.statusFg }};">{{ selHive.status }}</div>
+                    </div>
+                    <div>
+                      <div style="font-size:11.5px; color:#9A8A70; text-transform:uppercase; letter-spacing:0.03em;">Edad de la reina</div>
+                      <div style="font-weight:700; font-size:14.5px; color:#3A2C1D; margin-top:3px;">{{ selHive.queenAge }} años</div>
+                    </div>
+                    <div>
+                      <div style="font-size:11.5px; color:#9A8A70; text-transform:uppercase; letter-spacing:0.03em;">Marcaje</div>
+                      <div style="font-weight:700; font-size:14.5px; color:#3A2C1D; margin-top:3px;">{{ selHive.queenMark }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div onClick="{{ openInspectionForm }}" style="background:#E3963E; border-radius:16px; padding:13px; text-align:center; color:#fff; font-weight:800; font-family:'Nunito',sans-serif; font-size:14.5px; margin-bottom:18px; cursor:pointer;">+ Nueva inspección</div>
+
+                <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:15px; color:#3A2C1D; margin-bottom:10px;">Historial de inspecciones</div>
+                <sc-for list="{{ selHiveInspections }}" as="ins" hint-placeholder-count="2">
+                  <div style="background:#fff; border-radius:16px; padding:14px 16px; margin-bottom:10px; box-shadow:0 2px 8px rgba(58,44,29,0.05);">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+                      <div style="font-weight:800; font-size:13.5px; color:#3A2C1D;">{{ ins.date }}</div>
+                      <div style="font-size:11px; font-weight:700; color:{{ ins.temperamentFg }};">{{ ins.temperament }}</div>
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                      <span style="font-size:11.5px; background:#FBF3E3; color:#8A7660; padding:4px 9px; border-radius:100px;">Reina: {{ ins.queenLabel }}</span>
+                      <span style="font-size:11.5px; background:#FBF3E3; color:#8A7660; padding:4px 9px; border-radius:100px;">Cría: {{ ins.brood }}</span>
+                      <span style="font-size:11.5px; background:#FBF3E3; color:#8A7660; padding:4px 9px; border-radius:100px;">Miel: {{ ins.honey }}</span>
+                      <span style="font-size:11.5px; background:#FBF3E3; color:#8A7660; padding:4px 9px; border-radius:100px;">Polen: {{ ins.pollen }}</span>
+                      <span style="font-size:11.5px; padding:4px 9px; border-radius:100px; color:{{ ins.varroaFg }}; background:{{ ins.varroaBg }};">Varroa: {{ ins.varroa }}</span>
+                    </div>
+                    <sc-if value="{{ ins.hasNotes }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:12.5px; color:#8A7660; margin-top:8px; line-height:1.4;">{{ ins.notes }}</div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- INSPECTION FORM SHEET -->
+          <sc-if value="{{ showInspectionForm }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute; inset:0; background:rgba(58,44,29,0.4); z-index:30; display:flex; align-items:flex-end;">
+              <div style="background:#FBF3E3; width:100%; max-height:88%; overflow-y:auto; border-radius:24px 24px 0 0; padding:18px 20px 28px;">
+                <div style="width:40px; height:5px; background:#E0D3B6; border-radius:100px; margin:0 auto 14px;"></div>
+                <div style="font-family:'Nunito',sans-serif; font-weight:900; font-size:18px; color:#3A2C1D; margin-bottom:14px;">Nueva inspección · {{ selHive.code }}</div>
+
+                <div style="font-size:12.5px; font-weight:700; color:#8A7660; margin-bottom:6px;">¿Se ha visto a la reina?</div>
+                <div style="display:flex; gap:8px; margin-bottom:14px;">
+                  <div onClick="{{ setQueenSeen }}" style="flex:1; text-align:center; padding:10px; border-radius:12px; font-weight:700; font-size:13.5px; cursor:pointer; background:{{ draft.queenSeenBg }}; color:{{ draft.queenSeenFg }};">Sí</div>
+                  <div onClick="{{ setQueenNotSeen }}" style="flex:1; text-align:center; padding:10px; border-radius:12px; font-weight:700; font-size:13.5px; cursor:pointer; background:{{ draft.queenNotSeenBg }}; color:{{ draft.queenNotSeenFg }};">No</div>
+                </div>
+
+                <div style="font-size:12.5px; font-weight:700; color:#8A7660; margin-bottom:6px;">Cría</div>
+                <div style="display:flex; gap:6px; margin-bottom:14px;">
+                  <sc-for list="{{ broodOptions }}" as="o" hint-placeholder-count="4">
+                    <div onClick="{{ o.onSelect }}" style="flex:1; text-align:center; padding:9px 4px; border-radius:11px; font-weight:700; font-size:12px; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }};">{{ o.label }}</div>
+                  </sc-for>
+                </div>
+
+                <div style="font-size:12.5px; font-weight:700; color:#8A7660; margin-bottom:6px;">Reservas de miel</div>
+                <div style="display:flex; gap:6px; margin-bottom:14px;">
+                  <sc-for list="{{ honeyOptions }}" as="o" hint-placeholder-count="3">
+                    <div onClick="{{ o.onSelect }}" style="flex:1; text-align:center; padding:9px 4px; border-radius:11px; font-weight:700; font-size:12px; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }};">{{ o.label }}</div>
+                  </sc-for>
+                </div>
+
+                <div style="font-size:12.5px; font-weight:700; color:#8A7660; margin-bottom:6px;">Reservas de polen</div>
+                <div style="display:flex; gap:6px; margin-bottom:14px;">
+                  <sc-for list="{{ pollenOptions }}" as="o" hint-placeholder-count="3">
+                    <div onClick="{{ o.onSelect }}" style="flex:1; text-align:center; padding:9px 4px; border-radius:11px; font-weight:700; font-size:12px; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }};">{{ o.label }}</div>
+                  </sc-for>
+                </div>
+
+                <div style="font-size:12.5px; font-weight:700; color:#8A7660; margin-bottom:6px;">Signos de enfermedad</div>
+                <div style="display:flex; gap:6px; margin-bottom:8px;">
+                  <sc-for list="{{ varroaOptions }}" as="o" hint-placeholder-count="4">
+                    <div onClick="{{ o.onSelect }}" style="flex:1; text-align:center; padding:9px 2px; border-radius:11px; font-weight:700; font-size:11.5px; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }};">{{ o.label }}</div>
+                  </sc-for>
+                </div>
+                <div onClick="{{ toggleLoque }}" style="display:flex; align-items:center; gap:8px; margin-bottom:14px; cursor:pointer;">
+                  <div style="width:20px; height:20px; border-radius:6px; background:{{ draft.loqueBoxBg }}; display:flex; align-items:center; justify-content:center; border:1.5px solid #D9A417;">
+                    <sc-if value="{{ draft.loque }}" hint-placeholder-val="{{ false }}"><span style="color:#fff; font-size:12px; font-weight:900;">✓</span></sc-if>
+                  </div>
+                  <span style="font-size:13px; color:#3A2C1D; font-weight:600;">Signos de loque americana/europea</span>
+                </div>
+
+                <div style="font-size:12.5px; font-weight:700; color:#8A7660; margin-bottom:6px;">Temperamento</div>
+                <div style="display:flex; gap:6px; margin-bottom:14px;">
+                  <sc-for list="{{ temperamentOptions }}" as="o" hint-placeholder-count="3">
+                    <div onClick="{{ o.onSelect }}" style="flex:1; text-align:center; padding:9px 4px; border-radius:11px; font-weight:700; font-size:12px; cursor:pointer; background:{{ o.bg }}; color:{{ o.fg }};">{{ o.label }}</div>
+                  </sc-for>
+                </div>
+
+                <div style="font-size:12.5px; font-weight:700; color:#8A7660; margin-bottom:6px;">Notas</div>
+                <textarea value="{{ draft.notes }}" onChange="{{ onNotesChange }}" placeholder="Observaciones adicionales…" style="width:100%; box-sizing:border-box; min-height:64px; border-radius:12px; border:1.5px solid #E7DAB9; padding:10px 12px; font-family:inherit; font-size:13.5px; color:#3A2C1D; margin-bottom:18px; resize:none;"></textarea>
+
+                <div style="display:flex; gap:10px;">
+                  <div onClick="{{ closeInspectionForm }}" style="flex:1; text-align:center; padding:13px; border-radius:14px; font-weight:800; font-size:14px; color:#8A7660; background:#F1E8D3; cursor:pointer;">Cancelar</div>
+                  <div onClick="{{ saveInspection }}" style="flex:1.4; text-align:center; padding:13px; border-radius:14px; font-weight:800; font-size:14px; color:#fff; background:#5B7F42; cursor:pointer;">Guardar inspección</div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+        </div>
+      </sc-if>
+
+      <!-- ============ POLLEN ============ -->
+      <sc-if value="{{ isPollen }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="Analizador de polen" style="padding: 4px 20px 8px;">
+
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+            <div style="font-family:'Nunito',sans-serif; font-weight:900; font-size:22px; color:#3A2C1D;">Analizador de polen</div>
+            <sc-if value="{{ pollenShowHistoryBtn }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ showPollenHistory }}" style="width:38px; height:38px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#3A2C1D" stroke-width="1.8"/><path d="M12 7v5l3.5 2" stroke="#3A2C1D" stroke-width="1.8" stroke-linecap="round"/></svg>
+              </div>
+            </sc-if>
+            <sc-if value="{{ pollenShowBackBtn }}" hint-placeholder-val="{{ false }}">
+              <div onClick="{{ resetPollen }}" style="width:38px; height:38px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                <svg width="8" height="14" viewBox="0 0 8 14"><path d="M7 1L1 7l6 6" stroke="#3A2C1D" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </sc-if>
+          </div>
+
+          <!-- CAPTURE -->
+          <sc-if value="{{ pollenCapture }}" hint-placeholder-val="{{ true }}">
+            <div style="font-size:13.5px; color:#8A7660; line-height:1.5; margin-bottom:16px;">Fotografía una abeja con las corbículas (cestas de polen) cargadas. Analizaremos el color para estimar qué está floreciendo cerca de ti.</div>
+
+            <div style="border:2px dashed #DCC898; border-radius:22px; padding:30px 20px; text-align:center; background:#fff; margin-bottom:16px;">
+              <svg width="46" height="46" viewBox="0 0 24 24" fill="none" style="margin-bottom:10px;"><path d="M4 8a2 2 0 012-2h1.2l.8-1.6A2 2 0 019.8 3h4.4a2 2 0 011.8 1.4L16.8 6H18a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2V8z" stroke="#D9A417" stroke-width="1.6"/><circle cx="12" cy="13" r="3.4" stroke="#D9A417" stroke-width="1.6"/></svg>
+              <div style="font-weight:700; color:#3A2C1D; font-size:14px; margin-bottom:14px;">Sube o toma una foto</div>
+              <div style="display:flex; gap:10px;">
+                <label style="flex:1; background:#E3963E; color:#fff; font-weight:800; font-size:13px; padding:11px; border-radius:12px; cursor:pointer;">Hacer foto
+                  <input type="file" accept="image/*" capture="environment" onChange="{{ onPickImage }}" style="display:none;" />
+                </label>
+                <label style="flex:1; background:#F1E8D3; color:#8A7660; font-weight:800; font-size:13px; padding:11px; border-radius:12px; cursor:pointer;">Galería
+                  <input type="file" accept="image/*" onChange="{{ onPickImage }}" style="display:none;" />
+                </label>
+              </div>
+            </div>
+
+            <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:14.5px; color:#3A2C1D; margin-bottom:10px;">Análisis recientes</div>
+            <sc-for list="{{ pollenHistoryPreview }}" as="p" hint-placeholder-count="2">
+              <div style="background:#fff; border-radius:14px; padding:10px 12px; display:flex; align-items:center; gap:10px; margin-bottom:8px;">
+                <div style="width:30px; height:30px; border-radius:9px; background:{{ p.color }}; flex-shrink:0;"></div>
+                <div style="flex:1;">
+                  <div style="font-size:13px; font-weight:700; color:#3A2C1D;">{{ p.top }}</div>
+                  <div style="font-size:11.5px; color:#9A8A70;">{{ p.date }} · {{ p.apiary }}</div>
+                </div>
+                <div style="font-size:12px; font-weight:800; color:#B9691F;">{{ p.prob }}%</div>
+              </div>
+            </sc-for>
+          </sc-if>
+
+          <!-- ANALYZING -->
+          <sc-if value="{{ pollenAnalyzing }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff; border-radius:22px; padding:36px 24px; text-align:center; margin-top:20px;">
+              <sc-if value="{{ pollenImage }}" hint-placeholder-val="{{ false }}">
+                <img src="{{ pollenImage }}" style="width:96px; height:96px; object-fit:cover; border-radius:18px; margin:0 auto 20px; display:block;" />
+              </sc-if>
+              <div style="width:38px; height:38px; border:3.5px solid #F1E0BC; border-top-color:#E3963E; border-radius:50%; margin:0 auto 18px; animation: pb-spin 0.9s linear infinite;"></div>
+              <div style="font-weight:700; color:#3A2C1D; font-size:14.5px; animation: pb-pulse 1.4s ease-in-out infinite;">{{ pollenLoadingText }}</div>
+            </div>
+          </sc-if>
+
+          <!-- RESULTS -->
+          <sc-if value="{{ pollenResultsView }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff; border-radius:18px; padding:12px; display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+              <sc-if value="{{ pollenImage }}" hint-placeholder-val="{{ false }}">
+                <img src="{{ pollenImage }}" style="width:56px; height:56px; object-fit:cover; border-radius:12px;" />
+              </sc-if>
+              <div style="flex:1;">
+                <div style="font-weight:800; font-size:13.5px; color:#3A2C1D;">Resultado del análisis</div>
+                <div style="font-size:12px; color:#9A8A70; margin-top:2px;">{{ todayLabel }}</div>
+              </div>
+            </div>
+
+            <sc-for list="{{ pollenResultCards }}" as="r" hint-placeholder-count="4">
+              <div style="background:#fff; border-radius:18px; padding:15px 16px; margin-bottom:10px; box-shadow:0 2px 8px rgba(58,44,29,0.06);">
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                  <div style="width:34px; height:34px; border-radius:10px; background:{{ r.color }}; flex-shrink:0; border:1px solid rgba(0,0,0,0.06);"></div>
+                  <div style="flex:1;">
+                    <div style="font-weight:800; font-size:14.5px; color:#3A2C1D;">{{ r.nombreComun }}</div>
+                    <div style="font-size:12px; color:#9A8A70; font-style:italic;">{{ r.nombreCientifico }}</div>
+                  </div>
+                  <div style="font-family:'Nunito',sans-serif; font-weight:900; font-size:18px; color:#B9691F;">{{ r.probabilidad }}%</div>
+                </div>
+                <div style="height:7px; background:#F1E8D3; border-radius:100px; overflow:hidden; margin-bottom:8px;">
+                  <div style="height:100%; width:{{ r.barWidth }}; background:{{ r.color }}; border-radius:100px;"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:11.5px; color:#9A8A70;">
+                  <span>Polen {{ r.colorNombre }}</span>
+                  <span>Floración: {{ r.floracion }}</span>
+                </div>
+              </div>
+            </sc-for>
+
+            <div style="font-size:11.5px; color:#9A8A70; line-height:1.5; background:#F1E8D3; border-radius:14px; padding:12px 14px; margin:12px 0 16px;">
+              ⚠ Estimación orientativa basada en color, ubicación y época del año — no sustituye un análisis palinológico de laboratorio.
+            </div>
+
+            <div style="display:flex; gap:10px; margin-bottom:8px;">
+              <div onClick="{{ resetPollen }}" style="flex:1; text-align:center; padding:13px; border-radius:14px; font-weight:800; font-size:13.5px; color:#8A7660; background:#F1E8D3; cursor:pointer;">Nuevo análisis</div>
+              <div onClick="{{ saveToHistory }}" style="flex:1.3; text-align:center; padding:13px; border-radius:14px; font-weight:800; font-size:13.5px; color:#fff; background:#5B7F42; cursor:pointer;">Guardar en historial</div>
+            </div>
+          </sc-if>
+
+          <!-- HISTORY -->
+          <sc-if value="{{ pollenHistoryView }}" hint-placeholder-val="{{ false }}">
+            <sc-for list="{{ pollenHistoryFull }}" as="p" hint-placeholder-count="4">
+              <div style="background:#fff; border-radius:16px; padding:13px 14px; display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                <div style="width:38px; height:38px; border-radius:11px; background:{{ p.color }}; flex-shrink:0;"></div>
+                <div style="flex:1;">
+                  <div style="font-size:13.5px; font-weight:700; color:#3A2C1D;">{{ p.top }}</div>
+                  <div style="font-size:12px; color:#9A8A70; margin-top:2px;">{{ p.date }} · {{ p.apiary }}</div>
+                </div>
+                <div style="font-size:13px; font-weight:800; color:#B9691F;">{{ p.prob }}%</div>
+              </div>
+            </sc-for>
+          </sc-if>
+
+        </div>
+      </sc-if>
+
+      <!-- ============ HARVEST ============ -->
+      <sc-if value="{{ isHarvest }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="Cosechas" style="padding: 4px 20px 8px;">
+          <div style="font-family:'Nunito',sans-serif; font-weight:900; font-size:22px; color:#3A2C1D; margin-bottom:16px;">Cosechas</div>
+
+          <div style="display:flex; gap:10px; margin-bottom:18px;">
+            <div style="flex:1; background:#fff; border-radius:16px; padding:14px 12px; text-align:center;">
+              <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:19px; color:#B9691F;">{{ harvestStats.total }} kg</div>
+              <div style="font-size:11px; color:#9A8A70; margin-top:3px;">Temporada actual</div>
+            </div>
+            <div style="flex:1; background:#fff; border-radius:16px; padding:14px 12px; text-align:center;">
+              <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:19px; color:#5B7F42;">{{ harvestStats.avg }} kg</div>
+              <div style="font-size:11px; color:#9A8A70; margin-top:3px;">Media / colmena</div>
+            </div>
+            <div style="flex:1; background:#fff; border-radius:16px; padding:14px 12px; text-align:center;">
+              <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:19px; color:#B9691F;">{{ harvestStats.best }}</div>
+              <div style="font-size:11px; color:#9A8A70; margin-top:3px;">Mejor productora</div>
+            </div>
+          </div>
+
+          <div style="background:#fff; border-radius:20px; padding:18px 16px 10px; margin-bottom:18px;">
+            <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:14.5px; color:#3A2C1D; margin-bottom:16px;">Producción por temporada</div>
+            <div style="display:flex; align-items:flex-end; gap:10px; height:120px;">
+              <sc-for list="{{ harvestChart }}" as="s" hint-placeholder-count="5">
+                <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%;">
+                  <div style="font-size:10.5px; font-weight:700; color:#8A7660; margin-bottom:4px;">{{ s.kg }}</div>
+                  <div style="width:100%; height:{{ s.barHeight }}; background:{{ s.color }}; border-radius:8px 8px 3px 3px;"></div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:8px;">
+              <sc-for list="{{ harvestChart }}" as="s" hint-placeholder-count="5">
+                <div style="flex:1; text-align:center; font-size:10px; color:#9A8A70;">{{ s.season }}</div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:14.5px; color:#3A2C1D; margin-bottom:10px;">Por colmena · temporada actual</div>
+          <sc-for list="{{ harvestByHiveSorted }}" as="h" hint-placeholder-count="6">
+            <div style="background:#fff; border-radius:14px; padding:11px 14px; display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+              <div style="flex:1;">
+                <div style="font-size:13.5px; font-weight:700; color:#3A2C1D;">{{ h.hiveCode }}</div>
+                <div style="font-size:11.5px; color:#9A8A70;">{{ h.apiary }}</div>
+              </div>
+              <div style="width:90px; height:6px; background:#F1E8D3; border-radius:100px; overflow:hidden;">
+                <div style="height:100%; width:{{ h.barWidth }}; background:#E3963E; border-radius:100px;"></div>
+              </div>
+              <div style="font-size:13px; font-weight:800; color:#3A2C1D; width:44px; text-align:right;">{{ h.kg }} kg</div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- ============ CALENDAR ============ -->
+      <sc-if value="{{ isCalendar }}" hint-placeholder-val="{{ false }}">
+        <div data-screen-label="Calendario" style="padding: 4px 20px 8px;">
+          <div style="font-family:'Nunito',sans-serif; font-weight:900; font-size:22px; color:#3A2C1D; margin-bottom:6px;">Calendario apícola</div>
+          <div style="font-size:13px; color:#9A8A70; margin-bottom:16px;">{{ currentSeasonLabel }}</div>
+
+          <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:14.5px; color:#3A2C1D; margin-bottom:10px;">Pendientes</div>
+          <sc-for list="{{ pendingTasksDecorated }}" as="t" hint-placeholder-count="4">
+            <div style="background:#fff; border-radius:16px; padding:12px 14px; display:flex; align-items:center; gap:12px; margin-bottom:9px;">
+              <div onClick="{{ t.onToggle }}" style="width:22px; height:22px; border-radius:7px; border:1.6px solid #D9C79A; flex-shrink:0; cursor:pointer;"></div>
+              <div style="width:34px; height:34px; border-radius:10px; background:{{ t.iconBg }}; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:15px;">{{ t.icon }}</div>
+              <div style="flex:1;">
+                <div style="font-weight:700; font-size:13.5px; color:#3A2C1D;">{{ t.title }}</div>
+                <div style="font-size:12px; color:#9A8A70; margin-top:2px;">{{ t.date }} · {{ t.apiary }}</div>
+              </div>
+            </div>
+          </sc-for>
+
+          <div style="font-family:'Nunito',sans-serif; font-weight:800; font-size:14.5px; color:#3A2C1D; margin:18px 0 10px;">Completadas</div>
+          <sc-for list="{{ doneTasksDecorated }}" as="t" hint-placeholder-count="2">
+            <div style="background:#fff; border-radius:16px; padding:12px 14px; display:flex; align-items:center; gap:12px; margin-bottom:9px; opacity:0.6;">
+              <div onClick="{{ t.onToggle }}" style="width:22px; height:22px; border-radius:7px; background:#5B7F42; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;">
+                <span style="color:#fff; font-size:13px; font-weight:900;">✓</span>
+              </div>
+              <div style="flex:1;">
+                <div style="font-weight:700; font-size:13.5px; color:#3A2C1D; text-decoration:line-through;">{{ t.title }}</div>
+                <div style="font-size:12px; color:#9A8A70; margin-top:2px;">{{ t.date }} · {{ t.apiary }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+    </div>
+
+    <!-- TAB BAR -->
+    <div style="position:absolute; bottom:0; left:0; right:0; height:88px; background:rgba(255,251,242,0.92); backdrop-filter:blur(10px); border-top:1px solid #EFE2C9; display:flex; align-items:flex-start; padding-top:10px; z-index:10;">
+      <div onClick="{{ goHome }}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 11l8-7 8 7v9a1.5 1.5 0 01-1.5 1.5h-13A1.5 1.5 0 014 20v-9z" stroke="{{ tabColors.home }}" stroke-width="2" stroke-linejoin="round"/></svg>
+        <span style="font-size:10.5px; font-weight:700; color:{{ tabColors.home }};">Inicio</span>
+      </div>
+      <div onClick="{{ goApiaries }}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4.6v9.8L12 21l-8-4.6V6.6z" stroke="{{ tabColors.apiaries }}" stroke-width="2" stroke-linejoin="round"/></svg>
+        <span style="font-size:10.5px; font-weight:700; color:{{ tabColors.apiaries }};">Colmenares</span>
+      </div>
+      <div onClick="{{ goPollen }}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; cursor:pointer;">
+        <div style="width:44px; height:44px; border-radius:14px; background:{{ tabColors.pollenBg }}; display:flex; align-items:center; justify-content:center; margin-top:-8px;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.2" fill="{{ tabColors.pollenIcon }}"/><g fill="{{ tabColors.pollenIcon }}"><ellipse cx="12" cy="4.5" rx="2.6" ry="3.6"/><ellipse cx="12" cy="19.5" rx="2.6" ry="3.6"/><ellipse cx="4.5" cy="12" rx="3.6" ry="2.6"/><ellipse cx="19.5" cy="12" rx="3.6" ry="2.6"/></g></svg>
+        </div>
+        <span style="font-size:10.5px; font-weight:700; color:{{ tabColors.pollen }};">Polen</span>
+      </div>
+      <div onClick="{{ goHarvest }}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M8 3h8l1 3H7z" stroke="{{ tabColors.harvest }}" stroke-width="2" stroke-linejoin="round"/><rect x="6" y="6" width="12" height="15" rx="2" stroke="{{ tabColors.harvest }}" stroke-width="2"/></svg>
+        <span style="font-size:10.5px; font-weight:700; color:{{ tabColors.harvest }};">Cosechas</span>
+      </div>
+      <div onClick="{{ goCalendar }}" style="flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="16" rx="2.5" stroke="{{ tabColors.calendar }}" stroke-width="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4" stroke="{{ tabColors.calendar }}" stroke-width="2" stroke-linecap="round"/></svg>
+        <span style="font-size:10.5px; font-weight:700; color:{{ tabColors.calendar }};">Calendario</span>
+      </div>
+    </div>
+
+  </div>
+</x-import>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 520, &quot;height&quot;: 950}, &quot;appName&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;PolenBee&quot;, &quot;options&quot;: [&quot;PolenBee&quot;, &quot;ApiFlora&quot;, &quot;Colmena+&quot;], &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;General&quot;}, &quot;resaltarAlertas&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;General&quot;}}">
+class Component extends DCLogic {
+  apiaries = [
+    { id:'a1', name:'Valle del Jerte', location:'Cáceres, Extremadura' },
+    { id:'a2', name:'Sierra de Gata', location:'Cáceres, Extremadura' },
+    { id:'a3', name:'La Vera', location:'Cáceres, Extremadura' },
+  ];
+
+  hives = [
+    { id:'h1', apiaryId:'a1', code:'J-01', type:'Layens', queenAge:2, queenMark:'Azul · 2024', status:'Fuerte', lastInspection:'28 jun 2026' },
+    { id:'h2', apiaryId:'a1', code:'J-02', type:'Langstroth', queenAge:1, queenMark:'Blanco · 2025', status:'Fuerte', lastInspection:'28 jun 2026' },
+    { id:'h3', apiaryId:'a1', code:'J-03', type:'Layens', queenAge:3, queenMark:'Verde · 2023', status:'Media', lastInspection:'25 jun 2026' },
+    { id:'h4', apiaryId:'a1', code:'J-04', type:'Dadant', queenAge:2, queenMark:'Azul · 2024', status:'Débil', lastInspection:'25 jun 2026' },
+    { id:'h5', apiaryId:'a2', code:'G-01', type:'Langstroth', queenAge:1, queenMark:'Blanco · 2025', status:'Fuerte', lastInspection:'30 jun 2026' },
+    { id:'h6', apiaryId:'a2', code:'G-02', type:'Layens', queenAge:4, queenMark:'Amarillo · 2022', status:'Media', lastInspection:'30 jun 2026' },
+    { id:'h7', apiaryId:'a3', code:'V-01', type:'Dadant', queenAge:2, queenMark:'Azul · 2024', status:'Fuerte', lastInspection:'1 jul 2026' },
+    { id:'h8', apiaryId:'a3', code:'V-02', type:'Langstroth', queenAge:1, queenMark:'Blanco · 2025', status:'Fuerte', lastInspection:'1 jul 2026' },
+  ];
+
+  inspectionsSeed = {
+    h1: [
+      { date:'28 jun 2026', queenSeen:true, brood:'Abundante', honey:'Altas', pollen:'Altas', varroa:'Leve', loque:false, temperament:'Tranquila', notes:'Colonia muy fuerte, añadida una alza.' },
+      { date:'10 jun 2026', queenSeen:true, brood:'Abundante', honey:'Medias', pollen:'Altas', varroa:'Ninguno', loque:false, temperament:'Tranquila', notes:'Buen desarrollo tras la floración de jara.' },
+      { date:'22 may 2026', queenSeen:false, brood:'Moderada', honey:'Medias', pollen:'Medias', varroa:'Ninguno', loque:false, temperament:'Normal', notes:'No se vio a la reina pero hay huevo fresco.' },
+    ],
+    h2: [
+      { date:'28 jun 2026', queenSeen:true, brood:'Abundante', honey:'Altas', pollen:'Medias', varroa:'Ninguno', loque:false, temperament:'Tranquila', notes:'Reina joven, puesta excelente.' },
+      { date:'10 jun 2026', queenSeen:true, brood:'Moderada', honey:'Medias', pollen:'Medias', varroa:'Ninguno', loque:false, temperament:'Tranquila', notes:'' },
+    ],
+    h3: [
+      { date:'25 jun 2026', queenSeen:true, brood:'Moderada', honey:'Medias', pollen:'Medias', varroa:'Moderado', loque:false, temperament:'Normal', notes:'Se detectan varroas en el muestreo. Programar tratamiento.' },
+      { date:'9 jun 2026', queenSeen:true, brood:'Moderada', honey:'Bajas', pollen:'Medias', varroa:'Leve', loque:false, temperament:'Normal', notes:'' },
+    ],
+    h4: [
+      { date:'25 jun 2026', queenSeen:false, brood:'Escasa', honey:'Bajas', pollen:'Bajas', varroa:'Alto', loque:false, temperament:'Agresiva', notes:'Colonia debilitada. Valorar unificar o cambiar reina.' },
+    ],
+    h5: [ { date:'30 jun 2026', queenSeen:true, brood:'Abundante', honey:'Altas', pollen:'Altas', varroa:'Ninguno', loque:false, temperament:'Tranquila', notes:'' } ],
+    h6: [ { date:'30 jun 2026', queenSeen:true, brood:'Moderada', honey:'Medias', pollen:'Medias', varroa:'Leve', loque:false, temperament:'Normal', notes:'Reina vieja (2022), valorar sustitución.' } ],
+    h7: [ { date:'1 jul 2026', queenSeen:true, brood:'Abundante', honey:'Altas', pollen:'Altas', varroa:'Ninguno', loque:false, temperament:'Tranquila', notes:'' } ],
+    h8: [ { date:'1 jul 2026', queenSeen:true, brood:'Abundante', honey:'Medias', pollen:'Medias', varroa:'Ninguno', loque:false, temperament:'Tranquila', notes:'' } ],
+  };
+
+  tasksSeed = [
+    { id:'t1', date:'10 jul 2026', title:'Tratamiento antivarroa (ácido oxálico)', apiary:'Valle del Jerte', type:'treatment', done:false },
+    { id:'t2', date:'15 jul 2026', title:'Revisar reservas y alimentar si es necesario', apiary:'Sierra de Gata', type:'feeding', done:false },
+    { id:'t3', date:'20 jul 2026', title:'Cosecha de miel de verano', apiary:'La Vera', type:'harvest', done:false },
+    { id:'t4', date:'5 ago 2026', title:'Inspección general de fin de floración', apiary:'Todos los colmenares', type:'inspection', done:false },
+    { id:'t5', date:'20 ago 2026', title:'Tratamiento antivarroa de verano', apiary:'Todos los colmenares', type:'treatment', done:false },
+    { id:'t6', date:'2 jun 2026', title:'Tratamiento antivarroa de primavera', apiary:'Valle del Jerte', type:'treatment', done:true },
+    { id:'t7', date:'15 may 2026', title:'Colocación de alzas melarias', apiary:'Todos los colmenares', type:'inspection', done:true },
+  ];
+
+  harvestSeasons = [
+    { season:'Prim. 25', kg:38 },
+    { season:'Ver. 25', kg:54 },
+    { season:'Oto. 25', kg:11 },
+    { season:'Prim. 26', kg:46 },
+    { season:'Ver. 26*', kg:22 },
+  ];
+
+  harvestByHive = [
+    { hiveCode:'J-01', apiary:'Valle del Jerte', kg:9.5 },
+    { hiveCode:'V-01', apiary:'La Vera', kg:8.2 },
+    { hiveCode:'G-01', apiary:'Sierra de Gata', kg:7.8 },
+    { hiveCode:'J-02', apiary:'Valle del Jerte', kg:6.4 },
+    { hiveCode:'V-02', apiary:'La Vera', kg:5.1 },
+    { hiveCode:'J-03', apiary:'Valle del Jerte', kg:3.2 },
+    { hiveCode:'G-02', apiary:'Sierra de Gata', kg:2.6 },
+    { hiveCode:'J-04', apiary:'Valle del Jerte', kg:0 },
+  ];
+
+  weather = {
+    temp: 29, condition:'Soleado', wind:'14 km/h NO', humidity:38, forageIndex:'Alto',
+    forecast: [ { day:'Mié', temp:29 }, { day:'Jue', temp:31 }, { day:'Vie', temp:27 }, { day:'Sáb', temp:24 } ],
+  };
+
+  exampleResults = [
+    { nombreComun:'Jara', nombreCientifico:'Cistus ladanifer', probabilidad:45, colorPolen:'#7A3428', colorNombre:'rojo oscuro', floracion:'Abril – Junio' },
+    { nombreComun:'Romero', nombreCientifico:'Rosmarinus officinalis', probabilidad:30, colorPolen:'#E4D9B8', colorNombre:'crema', floracion:'Febrero – Mayo' },
+    { nombreComun:'Colza', nombreCientifico:'Brassica napus', probabilidad:15, colorPolen:'#F2DE4A', colorNombre:'amarillo limón', floracion:'Marzo – Mayo' },
+    { nombreComun:'Otras especies', nombreCientifico:'Flora mixta local', probabilidad:10, colorPolen:'#C9BFA8', colorNombre:'mixto', floracion:'Variable' },
+  ];
+
+  pollenHistorySeed = [
+    { date:'2 jul 2026', apiary:'Valle del Jerte', top:'Jara (Cistus ladanifer)', color:'#7A3428', prob:52 },
+    { date:'18 jun 2026', apiary:'La Vera', top:'Romero (Rosmarinus officinalis)', color:'#E4D9B8', prob:41 },
+    { date:'3 jun 2026', apiary:'Sierra de Gata', top:'Castaño (Castanea sativa)', color:'#D8C24A', prob:38 },
+  ];
+
+  loadingMessages = ['Detectando el color del polen…', 'Cruzando ubicación y fecha…', 'Calculando especies en floración…'];
+
+  state = {
+    tab: 'home',
+    apiaryId: null,
+    hiveId: null,
+    showInspectionForm: false,
+    draft: { queenSeen:true, brood:'Abundante', honey:'Medias', pollen:'Medias', varroa:'Ninguno', loque:false, temperament:'Tranquila', notes:'' },
+    extraInspections: {},
+    doneOverrides: {},
+    pollenView: 'capture',
+    pollenImage: null,
+    pollenResults: null,
+    pollenLoadingStep: 0,
+    pollenHistory: this.pollenHistorySeed,
+  };
+
+  statusStyle(status) {
+    if (status === 'Fuerte') return { fg:'#3F5C2E', bg:'#EAF1DE' };
+    if (status === 'Media') return { fg:'#A97A0B', bg:'#FCEEC9' };
+    return { fg:'#C0392B', bg:'#FBE4E1' };
+  }
+  varroaStyle(v) {
+    if (v === 'Ninguno') return { fg:'#3F5C2E', bg:'#EAF1DE' };
+    if (v === 'Leve') return { fg:'#A97A0B', bg:'#FCEEC9' };
+    return { fg:'#C0392B', bg:'#FBE4E1' };
+  }
+  temperamentStyle(t) {
+    if (t === 'Tranquila') return '#3F5C2E';
+    if (t === 'Normal') return '#A97A0B';
+    return '#C0392B';
+  }
+
+  goTab(tab) { this.setState({ tab, apiaryId:null, hiveId:null, showInspectionForm:false }); }
+  openApiary(id) { this.setState({ apiaryId:id, hiveId:null }); }
+  openHive(id) { this.setState({ hiveId:id }); }
+  backToApiaries() { this.setState({ apiaryId:null, hiveId:null }); }
+  backToApiary() { this.setState({ hiveId:null, showInspectionForm:false }); }
+
+  openInspectionForm() {
+    this.setState({ showInspectionForm:true, draft:{ queenSeen:true, brood:'Abundante', honey:'Medias', pollen:'Medias', varroa:'Ninguno', loque:false, temperament:'Tranquila', notes:'' } });
+  }
+  closeInspectionForm() { this.setState({ showInspectionForm:false }); }
+  updateDraft(patch) { this.setState(s => ({ draft: { ...s.draft, ...patch } })); }
+  saveInspection() {
+    const hiveId = this.state.hiveId;
+    const rec = { ...this.state.draft, date: this.todayShort() };
+    this.setState(s => ({
+      extraInspections: { ...s.extraInspections, [hiveId]: [rec, ...(s.extraInspections[hiveId] || [])] },
+      showInspectionForm: false,
+    }));
+  }
+
+  toggleTask(id) {
+    this.setState(s => {
+      const cur = s.doneOverrides[id] !== undefined ? s.doneOverrides[id] : this.tasksSeed.find(t => t.id === id).done;
+      return { doneOverrides: { ...s.doneOverrides, [id]: !cur } };
+    });
+  }
+
+  todayShort() { return new Date().toLocaleDateString('es-ES', { day:'numeric', month:'short', year:'numeric' }); }
+  todayLong() { return new Date().toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long' }); }
+
+  async locationContext() {
+    return new Promise(resolve => {
+      if (!navigator.geolocation) { resolve(this.apiaries[0].location + ' (colmenar activo)'); return; }
+      const timer = setTimeout(() => resolve(this.apiaries[0].location + ' (colmenar activo)'), 1800);
+      navigator.geolocation.getCurrentPosition(
+        pos => { clearTimeout(timer); resolve(`${pos.coords.latitude.toFixed(2)}° N, ${pos.coords.longitude.toFixed(2)}° O`); },
+        () => { clearTimeout(timer); resolve(this.apiaries[0].location + ' (colmenar activo)'); },
+        { timeout: 1700 }
+      );
+    });
+  }
+
+  extractJson(text) {
+    try { return JSON.parse(text); } catch (e) {}
+    const m = text.match(/\{[\s\S]*\}/);
+    if (m) { try { return JSON.parse(m[0]); } catch (e) {} }
+    return null;
+  }
+
+  onPickImage(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.setState({ pollenImage: reader.result, pollenView: 'analyzing', pollenLoadingStep: 0 });
+      this.runAnalysis(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async runAnalysis(dataUrl) {
+    const stepTimer = setInterval(() => {
+      this.setState(s => ({ pollenLoadingStep: (s.pollenLoadingStep + 1) % this.loadingMessages.length }));
+    }, 1000);
+    try {
+      const match = dataUrl.match(/^data:(.*?);base64,(.*)$/);
+      const mediaType = match ? match[1] : 'image/jpeg';
+      const base64 = match ? match[2] : dataUrl;
+      const location = await this.locationContext();
+      const today = this.todayLong();
+      const system = `Eres un asistente experto en palinología apícola. El apicultor está en ${location}, España. Hoy es ${today}. Observa el color y tono del polen en las corbículas (cestas de polen) de la abeja de la foto. Combina ese color con la ubicación geográfica y la época del año para estimar qué especies vegetales en floración son el origen más probable. Responde ÚNICAMENTE con JSON válido, sin texto adicional ni markdown, con esta forma exacta: {"especies":[{"nombreComun":"...","nombreCientifico":"...","probabilidad":45,"colorPolen":"#7A3428","colorNombre":"rojo oscuro","floracion":"Abril - Junio"}]}. Incluye entre 3 y 5 especies verosímiles para esa zona y fecha, ordenadas de mayor a menor probabilidad, sumando 100.`;
+      const res = await window.claude.complete({
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+            { type: 'text', text: 'Analiza el color del polen en las corbículas de esta abeja y devuelve el JSON de especies probables.' },
+          ],
+        }],
+        system,
+        max_tokens: 1024,
+      });
+      const parsed = this.extractJson(typeof res === 'string' ? res : (res && res.text) || '');
+      if (parsed && Array.isArray(parsed.especies) && parsed.especies.length) {
+        this.setState({ pollenResults: parsed.especies, pollenView: 'results' });
+      } else {
+        this.setState({ pollenResults: this.exampleResults, pollenView: 'results' });
+      }
+    } catch (e) {
+      this.setState({ pollenResults: this.exampleResults, pollenView: 'results' });
+    } finally {
+      clearInterval(stepTimer);
+    }
+  }
+
+  resetPollen() { this.setState({ pollenView: 'capture', pollenImage: null, pollenResults: null }); }
+  showPollenHistory() { this.setState({ pollenView: 'history' }); }
+  saveToHistory() {
+    const top = this.state.pollenResults[0];
+    const entry = { date: this.todayShort(), apiary: this.apiaries[0].name, top: `${top.nombreComun} (${top.nombreCientifico})`, color: top.colorPolen, prob: top.probabilidad };
+    this.setState(s => ({ pollenHistory: [entry, ...s.pollenHistory], pollenView: 'history' }));
+  }
+
+  renderVals() {
+    const s = this.state;
+    const appName = this.props.appName || 'PolenBee';
+    const highlightAlerts = this.props.resaltarAlertas !== false;
+
+    const decorateHive = (h) => {
+      const st = this.statusStyle(h.status);
+      const ap = this.apiaries.find(a => a.id === h.apiaryId);
+      return { ...h, statusFg: st.fg, statusBg: st.bg, apiaryName: ap ? ap.name : '', onOpen: () => this.setState({ tab:'apiaries', apiaryId: h.apiaryId, hiveId: h.id }) };
+    };
+    const decoratedHives = this.hives.map(decorateHive);
+
+    const stats = {
+      hives: this.hives.length,
+      apiaries: this.apiaries.length,
+      kg: this.harvestByHive.reduce((a,h)=>a+h.kg,0).toFixed(1).replace(/\.0$/,''),
+    };
+
+    const attentionHives = decoratedHives.filter(h => h.status !== 'Fuerte').map(h => {
+      const latest = (s.extraInspections[h.id] || this.inspectionsSeed[h.id] || [])[0];
+      let reason = 'Requiere seguimiento';
+      if (latest && highlightAlerts) {
+        if (latest.varroa === 'Alto' || latest.varroa === 'Moderado') reason = `Varroa ${latest.varroa.toLowerCase()}`;
+        else if (h.status === 'Débil') reason = 'Colonia debilitada';
+        else reason = 'Reina envejecida';
+      }
+      return { ...h, reason };
+    });
+
+    const iconFor = { treatment:'💊', feeding:'🌾', harvest:'🍯', inspection:'🔍' };
+    const bgFor = { treatment:'#FBE4E1', feeding:'#EAF1DE', harvest:'#FCEEC9', inspection:'#E6ECF5' };
+    const decorateTask = (t) => {
+      const done = s.doneOverrides[t.id] !== undefined ? s.doneOverrides[t.id] : t.done;
+      return { ...t, done, icon: iconFor[t.type] || '📌', iconBg: bgFor[t.type] || '#F1E8D3', onToggle: () => this.toggleTask(t.id) };
+    };
+    const allTasksDecorated = this.tasksSeed.map(decorateTask);
+    const upcomingTasks = allTasksDecorated.filter(t => !t.done).slice(0,3);
+
+    const selApiary = s.apiaryId ? this.apiaries.find(a => a.id === s.apiaryId) : null;
+    const selApiaryHives = s.apiaryId ? decoratedHives.filter(h => h.apiaryId === s.apiaryId) : [];
+    const selHive = s.hiveId ? decoratedHives.find(h => h.id === s.hiveId) : null;
+
+    const selHiveInspections = s.hiveId ? [...(s.extraInspections[s.hiveId] || []), ...(this.inspectionsSeed[s.hiveId] || [])].map(ins => {
+      const vs = this.varroaStyle(ins.varroa);
+      return { ...ins, queenLabel: ins.queenSeen ? 'sí' : 'no', varroaFg: vs.fg, varroaBg: vs.bg, temperamentFg: this.temperamentStyle(ins.temperament), hasNotes: !!ins.notes };
+    }) : [];
+
+    const apiaryCards = this.apiaries.map(a => ({ ...a, hiveCount: this.hives.filter(h => h.apiaryId === a.id).length, onOpen: () => this.openApiary(a.id) }));
+
+    // inspection form option lists
+    const mkOption = (field, value, label, colorSet) => {
+      const active = s.draft[field] === value;
+      return { label, bg: active ? colorSet[0] : '#F1E8D3', fg: active ? '#fff' : '#8A7660', onSelect: () => this.updateDraft({ [field]: value }) };
+    };
+    const broodOptions = ['Abundante','Moderada','Escasa','Ninguna'].map(v => mkOption('brood', v, v, ['#5B7F42']));
+    const honeyOptions = ['Altas','Medias','Bajas'].map(v => mkOption('honey', v, v, ['#E3963E']));
+    const pollenOptions = ['Altas','Medias','Bajas'].map(v => mkOption('pollen', v, v, ['#B9691F']));
+    const varroaOptions = ['Ninguno','Leve','Moderado','Alto'].map(v => mkOption('varroa', v, v, ['#C0392B']));
+    const temperamentOptions = ['Tranquila','Normal','Agresiva'].map(v => mkOption('temperament', v, v, ['#3F5C2E']));
+
+    const draft = {
+      ...s.draft,
+      queenSeenBg: s.draft.queenSeen ? '#5B7F42' : '#F1E8D3', queenSeenFg: s.draft.queenSeen ? '#fff' : '#8A7660',
+      queenNotSeenBg: !s.draft.queenSeen ? '#C0392B' : '#F1E8D3', queenNotSeenFg: !s.draft.queenSeen ? '#fff' : '#8A7660',
+      loqueBoxBg: s.draft.loque ? '#D9A417' : '#fff',
+    };
+
+    // pollen
+    const pollenResultCards = (s.pollenResults || []).map(r => ({ ...r, barWidth: r.probabilidad + '%', color: r.colorPolen }));
+    const pollenHistoryPreview = s.pollenHistory.slice(0,2);
+
+    // harvest
+    const maxKg = Math.max(...this.harvestSeasons.map(x => x.kg));
+    const seasonColors = ['#F1D9A0','#F1D9A0','#F1D9A0','#E3963E','#B9691F'];
+    const harvestChart = this.harvestSeasons.map((x,i) => ({ ...x, barHeight: Math.max(6, Math.round(x.kg / maxKg * 90)) + 'px', color: seasonColors[i] || '#E3963E' }));
+    const totalKg = this.harvestByHive.reduce((a,h)=>a+h.kg,0);
+    const maxHiveKg = Math.max(...this.harvestByHive.map(h=>h.kg));
+    const harvestByHiveSorted = [...this.harvestByHive].sort((a,b)=>b.kg-a.kg).map(h => ({ ...h, barWidth: Math.round(h.kg / maxHiveKg * 100) + '%' }));
+    const harvestStats = { total: totalKg.toFixed(1).replace(/\.0$/,''), avg: (totalKg/this.harvestByHive.length).toFixed(1), best: harvestByHiveSorted[0].hiveCode };
+
+    const pendingTasksDecorated = allTasksDecorated.filter(t => !t.done);
+    const doneTasksDecorated = allTasksDecorated.filter(t => t.done);
+
+    const activeColor = '#B9691F', inactiveColor = '#C4B896';
+    const tabColors = {
+      home: s.tab==='home' ? activeColor : inactiveColor,
+      apiaries: s.tab==='apiaries' ? activeColor : inactiveColor,
+      pollen: s.tab==='pollen' ? activeColor : inactiveColor,
+      pollenBg: s.tab==='pollen' ? '#5B7F42' : '#F1E8D3',
+      pollenIcon: s.tab==='pollen' ? '#FCEBC9' : '#B9691F',
+      harvest: s.tab==='harvest' ? activeColor : inactiveColor,
+      calendar: s.tab==='calendar' ? activeColor : inactiveColor,
+    };
+
+    return {
+      appName,
+      todayLabel: this.todayLong(),
+      isHome: s.tab==='home', isApiaries: s.tab==='apiaries', isPollen: s.tab==='pollen', isHarvest: s.tab==='harvest', isCalendar: s.tab==='calendar',
+      goHome: () => this.goTab('home'), goApiaries: () => this.goTab('apiaries'), goPollen: () => this.goTab('pollen'), goHarvest: () => this.goTab('harvest'), goCalendar: () => this.goTab('calendar'),
+      goToPollen: () => this.goTab('pollen'),
+      weather: this.weather, stats, hasAttentionHives: attentionHives.length > 0, attentionHives, upcomingTasks,
+
+      showApiaryList: s.tab==='apiaries' && !s.apiaryId,
+      showApiaryDetail: s.tab==='apiaries' && !!s.apiaryId && !s.hiveId,
+      showHiveDetail: s.tab==='apiaries' && !!s.hiveId,
+      apiaryCards, selApiary, selApiaryHives, selHive, selHiveInspections,
+      backToApiaries: () => this.backToApiaries(), backToApiary: () => this.backToApiary(),
+      openInspectionForm: () => this.openInspectionForm(),
+
+      showInspectionForm: s.showInspectionForm,
+      draft, broodOptions, honeyOptions, pollenOptions, varroaOptions, temperamentOptions,
+      setQueenSeen: () => this.updateDraft({ queenSeen:true }), setQueenNotSeen: () => this.updateDraft({ queenSeen:false }),
+      toggleLoque: () => this.updateDraft({ loque: !s.draft.loque }),
+      onNotesChange: (e) => this.updateDraft({ notes: e.target.value }),
+      closeInspectionForm: () => this.closeInspectionForm(), saveInspection: () => this.saveInspection(),
+
+      pollenCapture: s.pollenView==='capture', pollenAnalyzing: s.pollenView==='analyzing', pollenResultsView: s.pollenView==='results', pollenHistoryView: s.pollenView==='history',
+      pollenShowHistoryBtn: s.pollenView==='capture', pollenShowBackBtn: s.pollenView!=='capture',
+      onPickImage: (e) => this.onPickImage(e), resetPollen: () => this.resetPollen(), showPollenHistory: () => this.showPollenHistory(), saveToHistory: () => this.saveToHistory(),
+      pollenImage: s.pollenImage, pollenLoadingText: this.loadingMessages[s.pollenLoadingStep], pollenResultCards,
+      pollenHistoryPreview, pollenHistoryFull: s.pollenHistory,
+
+      harvestStats, harvestChart, harvestByHiveSorted,
+
+      currentSeasonLabel: 'Verano 2026 · floración de jara y romero',
+      pendingTasksDecorated, doneTasksDecorated,
+
+      tabColors,
+    };
+  }
+}
+</script>
+</body>
+</html>
