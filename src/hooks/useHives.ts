@@ -70,7 +70,21 @@ export function useHives(apiaryId?: string | null) {
     queenAge: number,
     queenMarking: string
   ) {
-    if (!session || session.user.is_anonymous) return;
+    if (!session || session.user.is_anonymous) {
+      const newHive: Hive = {
+        id: `local-${Date.now()}`,
+        code,
+        type: type as Hive['type'],
+        status: 'Media',
+        queenAge,
+        queenMark: queenMarking,
+        lastInspection: '',
+        apiaryId: apiaryIdArg,
+        inspections: [],
+      };
+      setHives((prev) => [...prev, newHive]);
+      return;
+    }
     const { data, error } = await supabase
       .from('polenbee_hives')
       .insert({ user_id: session.user.id, apiary_id: apiaryIdArg, code, type, queen_age: queenAge, queen_marking: queenMarking })
@@ -93,9 +107,10 @@ export function useHives(apiaryId?: string | null) {
   }
 
   async function deleteHive(id: string) {
-    if (!session || session.user.is_anonymous) return;
-    await supabase.from('polenbee_hives').delete().eq('id', id);
     setHives((prev) => prev.filter((h) => h.id !== id));
+    if (session && !session.user.is_anonymous) {
+      await supabase.from('polenbee_hives').delete().eq('id', id);
+    }
   }
 
   return { hives, loading, refetch: fetch, addHive, deleteHive };

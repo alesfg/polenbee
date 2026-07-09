@@ -54,7 +54,10 @@ export function useHarvests() {
   useEffect(() => { if (session !== undefined) fetch(); }, [session]);
 
   async function addHarvest(hiveId: string, kg: number, season: string, harvestedAt: string, notes?: string) {
-    if (!session || session.user.is_anonymous) return;
+    if (!session || session.user.is_anonymous) {
+      setHarvests((prev) => [{ id: `local-${Date.now()}`, hiveId, hiveCode: hiveId, apiaryName: '', harvestedAt, kg, season, notes }, ...prev]);
+      return;
+    }
     const { data, error } = await supabase
       .from('polenbee_harvests')
       .insert({ user_id: session.user.id, hive_id: hiveId, kg, season, harvested_at: harvestedAt, notes: notes || null })
@@ -76,9 +79,10 @@ export function useHarvests() {
   }
 
   async function deleteHarvest(id: string) {
-    if (!session || session.user.is_anonymous) return;
-    await supabase.from('polenbee_harvests').delete().eq('id', id);
     setHarvests((prev) => prev.filter((h) => h.id !== id));
+    if (session && !session.user.is_anonymous) {
+      await supabase.from('polenbee_harvests').delete().eq('id', id);
+    }
   }
 
   const totalKg = usingMock
