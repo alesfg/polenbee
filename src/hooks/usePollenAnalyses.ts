@@ -3,6 +3,20 @@ import { supabase } from '@/lib/supabase';
 import { PollenHistoryEntry, PollenResult, POLLEN_HISTORY } from '@/data/mockData';
 import { useSession } from './useSession';
 
+async function uploadPollenImage(userId: string, imageUri: string): Promise<string | null> {
+  try {
+    const path = `${userId}/${Date.now()}.jpg`;
+    const response = await fetch(imageUri);
+    const blob = await response.blob();
+    const { error } = await supabase.storage.from('pollen-images').upload(path, blob, { contentType: 'image/jpeg' });
+    if (error) return null;
+    const { data } = supabase.storage.from('pollen-images').getPublicUrl(path);
+    return data.publicUrl;
+  } catch {
+    return null;
+  }
+}
+
 export function usePollenAnalyses() {
   const session = useSession();
   const [analyses, setAnalyses] = useState<PollenHistoryEntry[]>([]);
@@ -21,8 +35,8 @@ export function usePollenAnalyses() {
       .order('analyzed_at', { ascending: false });
 
     if (data) {
-      const mapped: PollenHistoryEntry[] = data
-        .map((row: any) => {
+      const mapped: PollenHistoryEntry[] = (data as any[])
+        .map((row) => {
           const species: PollenResult[] = Array.isArray(row.species) ? row.species : [];
           if (!species.length) return null;
           return {
@@ -54,11 +68,18 @@ export function usePollenAnalyses() {
     setAnalyses((prev) => [entry, ...prev]);
 
     if (!session) return;
+
+    let imageUrl: string | null = null;
+    if (imageUri) {
+      imageUrl = await uploadPollenImage(session.user.id, imageUri);
+    }
+
     await supabase.from('polenbee_pollen_analyses').insert({
       user_id: session.user.id,
       apiary_id: apiaryId || null,
       species,
-      image_url: imageUri || null,
+      image_url: imageUrl,
+      analyzed_at: new Date().toISOString().split('T')[0],
     });
   }
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -9,6 +10,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { posthog } from '@/lib/posthog';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TAB_BAR_HEIGHT } from '@/constants/theme';
@@ -17,22 +20,29 @@ import { useHives } from '@/hooks/useHives';
 
 export default function CosechasScreen() {
   const insets = useSafeAreaInsets();
-  const { harvests, loading, usingMock, mockData, addHarvest } = useHarvests();
+  const { harvests, loading, usingMock, mockData, addHarvest, deleteHarvest } = useHarvests();
   const { hives } = useHives();
   const [showForm, setShowForm] = useState(false);
   const [newHiveIndex, setNewHiveIndex] = useState(0);
   const [newKg, setNewKg] = useState('');
   const [newSeason, setNewSeason] = useState('');
-  const [newDate, setNewDate] = useState('');
+  const [newDate, setNewDate] = useState(new Date());
 
   async function saveHarvest() {
     const hive = hives[newHiveIndex];
     if (!hive || !newKg) return;
-    const parts = newDate.split('/');
-    const isoDate = parts.length === 3 ? `${parts[2]}-${parts[1]}-${parts[0]}` : (newDate || new Date().toISOString().split('T')[0]);
+    const isoDate = newDate.toISOString().split('T')[0];
     await addHarvest(hive.id, parseFloat(newKg), newSeason, isoDate);
-    setNewKg(''); setNewSeason(''); setNewDate(''); setNewHiveIndex(0);
+    posthog.capture('feature_used', { feature: 'new_harvest' });
+    setNewKg(''); setNewSeason(''); setNewDate(new Date()); setNewHiveIndex(0);
     setShowForm(false);
+  }
+
+  function confirmDelete(id: string, code: string) {
+    Alert.alert('Eliminar cosecha', `¿Eliminar la cosecha de ${code}?`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Eliminar', style: 'destructive', onPress: () => deleteHarvest(id) },
+    ]);
   }
 
   if (usingMock) {
@@ -114,7 +124,7 @@ export default function CosechasScreen() {
   const topHive = harvests.reduce((best, h) => (!best || h.kg > best.kg) ? h : best, harvests[0]);
   const maxKg = Math.max(...harvests.map((h) => h.kg));
 
-  const byHive = harvests.map((h) => ({ code: h.hiveCode, apiary: h.apiaryName, kg: h.kg }));
+  const byHive = harvests.map((h) => ({ id: h.id, code: h.hiveCode, apiary: h.apiaryName, kg: h.kg }));
 
   return (
     <ScrollView
@@ -131,7 +141,7 @@ export default function CosechasScreen() {
       <StatCards totalKg={+totalKg.toFixed(1)} avgPerHive={avgPerHive} topProducer={topHive.hiveCode} />
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Por cosecha</Text>
-        <HiveList byHive={byHive} maxKg={maxKg} />
+        <HiveList byHive={byHive} maxKg={maxKg} onDelete={confirmDelete} />
       </View>
       <HarvestFormModal
         visible={showForm}
@@ -194,14 +204,19 @@ function BarChart({ seasons, chartMax }: { seasons: { label: string; kg: number 
   );
 }
 
-function HiveList({ byHive, maxKg }: { byHive: { code: string; apiary: string; kg: number }[]; maxKg: number }) {
+function HiveList({ byHive, maxKg, onDelete }: { byHive: { id?: string; code: string; apiary: string; kg: number }[]; maxKg: number; onDelete?: (id: string, code: string) => void }) {
   return (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>Por colmena · temporada actual</Text>
       {byHive.map((h) => {
         const pct = (h.kg / maxKg) * 100;
         return (
-          <View key={h.code + h.kg} style={styles.hiveRow}>
+          <TouchableOpacity
+            key={h.code + h.kg}
+            style={styles.hiveRow}
+            onLongPress={() => h.id && onDelete?.(h.id, h.code)}
+            activeOpacity={1}
+          >
             <View style={styles.hiveRowLeft}>
               <Text style={styles.hiveCode}>{h.code}</Text>
               <Text style={styles.hiveApiary}>{h.apiary}</Text>
@@ -210,7 +225,7 @@ function HiveList({ byHive, maxKg }: { byHive: { code: string; apiary: string; k
               <View style={[styles.progressBarFill, { width: `${pct}%` as any }]} />
             </View>
             <Text style={styles.hiveKg}>{h.kg} kg</Text>
-          </View>
+          </TouchableOpacity>
         );
       })}
     </View>
@@ -227,39 +242,48 @@ function HarvestFormModal({
         <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
           <View style={styles.dragHandle} />
           <Text style={styles.sheetTitle}>Registrar cosecha</Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {hives.length > 0 && (
+              <>
+                <Text style={styles.fieldLabel}>Colmena</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {hives.map((h: any, i: number) => (
+                      <TouchableOpacity key={h.id} style={[styles.pill, newHiveIndex === i && { backgroundColor: Colors.honeyFaint, borderColor: Colors.honeyDark }]} onPress={() => setNewHiveIndex(i)}>
+                        <Text style={[styles.pillText, newHiveIndex === i && { color: Colors.honeyDark, fontFamily: 'NunitoSans-Bold' }]}>{h.code}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </>
+            )}
 
-          {hives.length > 0 && (
-            <>
-              <Text style={styles.fieldLabel}>Colmena</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {hives.map((h: any, i: number) => (
-                    <TouchableOpacity key={h.id} style={[styles.pill, newHiveIndex === i && { backgroundColor: Colors.honeyFaint, borderColor: Colors.honeyDark }]} onPress={() => setNewHiveIndex(i)}>
-                      <Text style={[styles.pillText, newHiveIndex === i && { color: Colors.honeyDark, fontFamily: 'NunitoSans-Bold' }]}>{h.code}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </>
-          )}
+            <Text style={styles.fieldLabel}>Kg recolectados</Text>
+            <TextInput style={styles.formInput} value={newKg} onChangeText={setNewKg} keyboardType="decimal-pad" placeholder="Ej. 18.5" placeholderTextColor={Colors.textMuted} />
 
-          <Text style={styles.fieldLabel}>Kg recolectados</Text>
-          <TextInput style={styles.formInput} value={newKg} onChangeText={setNewKg} keyboardType="decimal-pad" placeholder="Ej. 18.5" placeholderTextColor={Colors.textMuted} />
+            <Text style={styles.fieldLabel}>Temporada</Text>
+            <TextInput style={styles.formInput} value={newSeason} onChangeText={setNewSeason} placeholder="Ej. Primavera 2026" placeholderTextColor={Colors.textMuted} />
 
-          <Text style={styles.fieldLabel}>Temporada</Text>
-          <TextInput style={styles.formInput} value={newSeason} onChangeText={setNewSeason} placeholder="Ej. Primavera 2026" placeholderTextColor={Colors.textMuted} />
+            <Text style={styles.fieldLabel}>Fecha</Text>
+            <DateTimePicker
+              value={newDate}
+              mode="date"
+              display="spinner"
+              onChange={(_: any, date: Date | undefined) => date && setNewDate(date)}
+              locale="es-ES"
+              textColor={Colors.textPrimary}
+              style={{ marginBottom: 8 }}
+            />
 
-          <Text style={styles.fieldLabel}>Fecha (DD/MM/AAAA)</Text>
-          <TextInput style={styles.formInput} value={newDate} onChangeText={setNewDate} placeholder="Ej. 15/07/2026" placeholderTextColor={Colors.textMuted} keyboardType="numbers-and-punctuation" />
-
-          <View style={styles.sheetButtons}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-              <Text style={styles.cancelBtnText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.saveBtn} onPress={onSave}>
-              <Text style={styles.saveBtnText}>Guardar</Text>
-            </TouchableOpacity>
-          </View>
+            <View style={styles.sheetButtons}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
+                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.saveBtn} onPress={onSave}>
+                <Text style={styles.saveBtnText}>Guardar</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
         </View>
       </View>
     </Modal>

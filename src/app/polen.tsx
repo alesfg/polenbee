@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -12,7 +13,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TAB_BAR_HEIGHT } from '@/constants/theme';
-import { FALLBACK_POLLEN, PollenHistoryEntry, PollenResult } from '@/data/mockData';
+import { FALLBACK_POLLEN, PollenResult } from '@/data/mockData';
+import { posthog } from '@/lib/posthog';
 import { usePollenAnalyses } from '@/hooks/usePollenAnalyses';
 
 type ViewState = 'capture' | 'analyzing' | 'results' | 'history';
@@ -23,12 +25,25 @@ const ANALYZING_MESSAGES = [
   'Calculando especies en floración…',
 ];
 
+async function getLocationLabel(): Promise<string> {
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') return 'España';
+    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+    const [place] = await Location.reverseGeocodeAsync({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
+    return [place.city, place.region, place.country].filter(Boolean).join(', ');
+  } catch {
+    return 'España';
+  }
+}
+
 async function analyzePollenImage(base64: string): Promise<PollenResult[]> {
   const apiKey = process.env.EXPO_PUBLIC_OPENAI_KEY;
   if (!apiKey) return FALLBACK_POLLEN;
 
   try {
     const today = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+    const location = await getLocationLabel();
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -41,7 +56,7 @@ async function analyzePollenImage(base64: string): Promise<PollenResult[]> {
         messages: [
           {
             role: 'system',
-            content: `Eres un experto en botánica y apicultura. La ubicación aproximada es Cáceres, Extremadura, España. La fecha de hoy es ${today}.`,
+            content: `Eres un experto en botánica y apicultura. La ubicación aproximada es ${location}. La fecha de hoy es ${today}.`,
           },
           {
             role: 'user',
@@ -103,6 +118,7 @@ export default function PolenScreen() {
       setImageUri(asset.uri);
       setImageBase64(asset.base64 ?? null);
       setView('analyzing');
+      posthog.capture('feature_used', { feature: 'pollen_analyzer' });
       const res = await analyzePollenImage(asset.base64 ?? '');
       setResults(res);
       setView('results');

@@ -11,6 +11,11 @@ export async function signUp(email: string, password: string) {
   if (error) throw error;
 }
 
+export async function signInAnonymously() {
+  const { error } = await supabase.auth.signInAnonymously();
+  if (error) throw error;
+}
+
 export async function signOut() {
   await supabase.auth.signOut();
 }

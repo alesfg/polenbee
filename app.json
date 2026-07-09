@@ -33,6 +33,12 @@
         }
       ],
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PolenBee necesita tu ubicación para identificar el polen de tu zona."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#FBF3E3",

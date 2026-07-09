@@ -3,10 +3,14 @@ import { supabase } from '@/lib/supabase';
 import { Hive, HiveStatus, HIVES } from '@/data/mockData';
 import { useSession } from './useSession';
 
-function computeStatus(queenAge: number): HiveStatus {
-  if (queenAge <= 2) return 'Fuerte';
-  if (queenAge === 3) return 'Media';
-  return 'Débil';
+function computeHiveStatus(lastInspection?: { varroa: string; brood: string }): { status: HiveStatus; attentionReason?: string } {
+  if (!lastInspection) return { status: 'Media' };
+  const { varroa, brood } = lastInspection;
+  if (varroa === 'Alto' || brood === 'Ninguna')
+    return { status: 'Débil', attentionReason: varroa === 'Alto' ? 'Varroa alto' : 'Sin cría' };
+  if (varroa === 'Moderado' || brood === 'Escasa')
+    return { status: 'Media', attentionReason: varroa === 'Moderado' ? 'Varroa moderado' : undefined };
+  return { status: 'Fuerte' };
 }
 
 export function useHives(apiaryId?: string | null) {
@@ -23,23 +27,35 @@ export function useHives(apiaryId?: string | null) {
     setLoading(true);
     let query = supabase
       .from('polenbee_hives')
-      .select('id, apiary_id, code, type, queen_age, queen_marking, created_at')
-      .order('created_at');
-    if (apiaryId) query = query.eq('apiary_id', apiaryId);
+      .select(`
+        id, apiary_id, code, type, queen_age, queen_marking, created_at,
+        polenbee_inspections(varroa, brood, temperament, inspected_at)
+      `)
+      .order('created_at')
+      .order('inspected_at', { referencedTable: 'polenbee_inspections', ascending: false });
+
+    if (apiaryId) query = (query as any).eq('apiary_id', apiaryId);
 
     const { data } = await query;
     if (data) {
-      const mapped: Hive[] = data.map((row) => ({
-        id: row.id,
-        code: row.code,
-        type: row.type as Hive['type'],
-        status: computeStatus(row.queen_age ?? 2),
-        queenAge: row.queen_age ?? 2,
-        queenMark: row.queen_marking ?? '',
-        lastInspection: '',
-        apiaryId: row.apiary_id,
-        inspections: [],
-      }));
+      const mapped: Hive[] = (data as any[]).map((row) => {
+        const inspections: any[] = Array.isArray(row.polenbee_inspections) ? row.polenbee_inspections : [];
+        const last = inspections[0];
+        const { status, attentionReason } = computeHiveStatus(last);
+        const lastDate = last ? new Date(last.inspected_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
+        return {
+          id: row.id,
+          code: row.code,
+          type: row.type as Hive['type'],
+          status,
+          attentionReason,
+          queenAge: row.queen_age ?? 2,
+          queenMark: row.queen_marking ?? '',
+          lastInspection: lastDate,
+          apiaryId: row.apiary_id,
+          inspections: [],
+        };
+      });
       setHives(mapped);
     }
     setLoading(false);
@@ -62,14 +78,14 @@ export function useHives(apiaryId?: string | null) {
       .single();
     if (!error && data) {
       const newHive: Hive = {
-        id: data.id,
-        code: data.code,
-        type: data.type as Hive['type'],
-        status: computeStatus(data.queen_age ?? 2),
-        queenAge: data.queen_age ?? 2,
-        queenMark: data.queen_marking ?? '',
+        id: (data as any).id,
+        code: (data as any).code,
+        type: (data as any).type as Hive['type'],
+        status: 'Media',
+        queenAge: (data as any).queen_age ?? 2,
+        queenMark: (data as any).queen_marking ?? '',
         lastInspection: '',
-        apiaryId: data.apiary_id,
+        apiaryId: (data as any).apiary_id,
         inspections: [],
       };
       setHives((prev) => [...prev, newHive]);

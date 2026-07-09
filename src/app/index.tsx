@@ -4,23 +4,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TAB_BAR_HEIGHT } from '@/constants/theme';
 import { useApiaries } from '@/hooks/useApiaries';
+import { useHarvests } from '@/hooks/useHarvests';
 import { useHives } from '@/hooks/useHives';
 import { useSession } from '@/hooks/useSession';
 import { useTasks } from '@/hooks/useTasks';
-
-const weather = {
-  temp: 34,
-  condition: 'Soleado',
-  wind: '8 km/h',
-  forageIndex: 'Alto',
-  humidity: 45,
-  forecast: [
-    { day: 'Jue', temp: 31 },
-    { day: 'Vie', temp: 33 },
-    { day: 'Sáb', temp: 36 },
-    { day: 'Dom', temp: 32 },
-  ],
-};
+import { useWeather } from '@/hooks/useWeather';
 
 const today = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -48,10 +36,11 @@ export default function InicioScreen() {
   const { hives } = useHives();
   const { tasks, isDone } = useTasks();
 
-  const greeting = session?.user?.email?.split('@')[0] ?? 'Elena';
+  const { weather } = useWeather();
+  const { totalKg } = useHarvests();
+  const greeting = session?.user?.email?.split('@')[0] ?? 'Apicultor';
   const pendingTasks = tasks.filter((t) => !isDone(t)).slice(0, 3);
   const attentionHives = hives.filter((h) => h.attentionReason);
-  const totalKg = 187;
 
   return (
     <ScrollView
@@ -65,9 +54,9 @@ export default function InicioScreen() {
           <Text style={styles.greeting}>Hola, {greeting}</Text>
           <Text style={styles.dateText}>{today}</Text>
         </View>
-        <View style={styles.avatar}>
+        <TouchableOpacity style={styles.avatar} onPress={() => router.push('/perfil')} activeOpacity={0.8}>
           <View style={styles.beeDot} />
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Weather widget */}

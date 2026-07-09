@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { signIn, signUp } from '@/lib/auth';
+import { signIn, signInAnonymously, signUp } from '@/lib/auth';
 import { Colors, Spacing } from '@/constants/theme';
 
 export default function LoginScreen() {
@@ -19,6 +19,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [anonLoading, setAnonLoading] = useState(false);
   const [error, setError] = useState('');
 
   async function handleSubmit() {
@@ -109,6 +110,24 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          style={styles.anonBtn}
+          onPress={async () => {
+            setAnonLoading(true);
+            setError('');
+            try { await signInAnonymously(); }
+            catch (e: any) { setError(e.message ?? 'Error desconocido'); }
+            finally { setAnonLoading(false); }
+          }}
+          disabled={anonLoading}
+          activeOpacity={0.7}
+        >
+          {anonLoading
+            ? <ActivityIndicator color={Colors.textMuted} />
+            : <Text style={styles.anonBtnText}>Continuar sin cuenta</Text>
+          }
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
   );
@@ -138,4 +157,7 @@ const styles = StyleSheet.create({
 
   toggleBtn: { marginTop: Spacing.md, alignItems: 'center' },
   toggleText: { color: Colors.honeyDark, fontFamily: 'NunitoSans-SemiBold', fontSize: 13 },
+
+  anonBtn: { alignItems: 'center', paddingVertical: 14 },
+  anonBtnText: { color: Colors.textMuted, fontFamily: 'NunitoSans-SemiBold', fontSize: 14, textDecorationLine: 'underline' },
 });

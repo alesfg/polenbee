@@ -5,6 +5,7 @@ import React, { useEffect } from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSession } from '@/hooks/useSession';
+import { posthog } from '@/lib/posthog';
 
 import { Colors, TAB_BAR_HEIGHT } from '@/constants/theme';
 
@@ -129,6 +130,9 @@ export default function RootLayout() {
     if (!fontsLoaded || session === undefined) return;
     if (session === null) {
       router.replace('/login');
+    } else {
+      posthog.identify(session.user.id, session.user.email ? { email: session.user.email } : {});
+      posthog.capture('app_open');
     }
   }, [fontsLoaded, session]);
 
@@ -146,6 +150,7 @@ export default function RootLayout() {
         <Tabs.Screen name="cosechas" />
         <Tabs.Screen name="calendario" />
         <Tabs.Screen name="login" options={{ href: null }} />
+        <Tabs.Screen name="perfil" options={{ href: null }} />
       </Tabs>
     </SafeAreaProvider>
   );

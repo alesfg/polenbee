@@ -93,5 +93,12 @@ export function useTasks() {
     }
   }
 
-  return { tasks, loading, isDone, toggleTask, addTask };
+  async function deleteTask(id: string) {
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    if (session) {
+      await supabase.from('polenbee_tasks').delete().eq('id', id);
+    }
+  }
+
+  return { tasks, loading, isDone, toggleTask, addTask, deleteTask };
 }

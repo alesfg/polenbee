@@ -28,13 +28,15 @@ export function useHarvests() {
     }
     setUsingMock(false);
     setLoading(true);
+    const yearStart = `${new Date().getFullYear()}-01-01`;
     const { data } = await supabase
       .from('polenbee_harvests')
       .select('id, hive_id, harvested_at, kg, season, notes, polenbee_hives(code, polenbee_apiaries(name))')
+      .gte('harvested_at', yearStart)
       .order('harvested_at', { ascending: false });
 
     if (data) {
-      const mapped: HarvestRow[] = data.map((row: any) => ({
+      const mapped: HarvestRow[] = (data as any[]).map((row) => ({
         id: row.id,
         hiveId: row.hive_id,
         hiveCode: row.polenbee_hives?.code ?? '',
@@ -73,7 +75,15 @@ export function useHarvests() {
     }
   }
 
-  const mockData = HARVEST_DATA;
+  async function deleteHarvest(id: string) {
+    if (!session) return;
+    await supabase.from('polenbee_harvests').delete().eq('id', id);
+    setHarvests((prev) => prev.filter((h) => h.id !== id));
+  }
 
-  return { harvests, loading, usingMock, mockData, refetch: fetch, addHarvest };
+  const totalKg = usingMock
+    ? HARVEST_DATA.totalKg
+    : +harvests.reduce((s, h) => s + h.kg, 0).toFixed(1);
+
+  return { harvests, loading, usingMock, mockData: HARVEST_DATA, totalKg, refetch: fetch, addHarvest, deleteHarvest };
 }

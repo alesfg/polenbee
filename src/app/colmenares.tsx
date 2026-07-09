@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -16,6 +17,7 @@ import { HiveStatus } from '@/data/mockData';
 import { useApiaries } from '@/hooks/useApiaries';
 import { useHives } from '@/hooks/useHives';
 import { useInspections } from '@/hooks/useInspections';
+import { posthog } from '@/lib/posthog';
 
 type InspectionDraft = {
   queenSeen: 'Sí' | 'No' | '';
@@ -101,8 +103,8 @@ export default function ColmenaresScreen() {
   const [newHiveQueenAge, setNewHiveQueenAge] = useState('');
   const [newHiveMarking, setNewHiveMarking] = useState('');
 
-  const { apiaries, loading: apiariesLoading, addApiary } = useApiaries();
-  const { hives, loading: hivesLoading, addHive } = useHives(apiaryId);
+  const { apiaries, loading: apiariesLoading, addApiary, deleteApiary } = useApiaries();
+  const { hives, loading: hivesLoading, addHive, deleteHive } = useHives(apiaryId);
   const { inspections, addInspection } = useInspections(hiveId);
 
   const apiary = apiaries.find((a) => a.id === apiaryId);
@@ -127,8 +129,23 @@ export default function ColmenaresScreen() {
       temperament: draft.temperament || 'Normal',
       notes: draft.notes,
     });
+    posthog.capture('feature_used', { feature: 'new_inspection' });
     setShowInspForm(false);
     setDraft(emptyDraft);
+  }
+
+  function confirmDeleteApiary(id: string, name: string) {
+    Alert.alert('Eliminar colmenar', `¿Eliminar "${name}"? Se eliminarán todas sus colmenas e inspecciones.`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Eliminar', style: 'destructive', onPress: () => deleteApiary(id) },
+    ]);
+  }
+
+  function confirmDeleteHive(id: string, code: string) {
+    Alert.alert('Eliminar colmena', `¿Eliminar la colmena ${code}? Se eliminarán sus inspecciones.`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Eliminar', style: 'destructive', onPress: () => deleteHive(id) },
+    ]);
   }
 
   async function saveApiary() {
@@ -193,7 +210,7 @@ export default function ColmenaresScreen() {
                 </View>
               ) : (
                 apiaries.map((a) => (
-                  <TouchableOpacity key={a.id} style={styles.apiaryCard} onPress={() => setApiaryId(a.id)} activeOpacity={0.85}>
+                  <TouchableOpacity key={a.id} style={styles.apiaryCard} onPress={() => setApiaryId(a.id)} onLongPress={() => confirmDeleteApiary(a.id, a.name)} activeOpacity={0.85}>
                     <MapPlaceholder />
                     <View style={styles.apiaryCardBottom}>
                       <View style={{ flex: 1 }}>
@@ -224,7 +241,7 @@ export default function ColmenaresScreen() {
                 hives.map((h) => {
                   const s = statusColors(h.status);
                   return (
-                    <TouchableOpacity key={h.id} style={styles.hiveCard} onPress={() => setHiveId(h.id)} activeOpacity={0.85}>
+                    <TouchableOpacity key={h.id} style={styles.hiveCard} onPress={() => setHiveId(h.id)} onLongPress={() => confirmDeleteHive(h.id, h.code)} activeOpacity={0.85}>
                       <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                           <Text style={styles.hiveCode}>{h.code}</Text>
