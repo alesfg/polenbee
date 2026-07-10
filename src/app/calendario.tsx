@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   Alert,
   Keyboard,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { BottomSheet } from '@/components/BottomSheet';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -169,9 +169,8 @@ export default function CalendarioScreen() {
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
-      <Modal visible={showForm} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+      <BottomSheet visible={showForm} onClose={() => { Keyboard.dismiss(); setShowForm(false); setEditingTask(null); }} maxHeight="90%">
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
             <View style={styles.dragHandle} />
             <Text style={styles.sheetTitle}>{editingTask ? 'Editar tarea' : 'Nueva tarea'}</Text>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -241,8 +240,7 @@ export default function CalendarioScreen() {
               </View>
             </ScrollView>
           </View>
-        </View>
-      </Modal>
+      </BottomSheet>
     </View>
   );
 }
@@ -267,7 +265,6 @@ const styles = StyleSheet.create({
   fab: { position: 'absolute', right: 20, width: 54, height: 54, borderRadius: 17, backgroundColor: Colors.honeyPrimary, alignItems: 'center', justifyContent: 'center', shadowColor: Colors.honeyPrimary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 6 },
   fabText: { color: '#fff', fontSize: 28, lineHeight: 32, fontWeight: '300' },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(58,44,29,0.5)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: Colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '90%' },
   dragHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border2, alignSelf: 'center', marginBottom: 16 },
   sheetTitle: { fontFamily: 'Nunito-ExtraBold', fontSize: 18, color: Colors.textPrimary, marginBottom: 20 },

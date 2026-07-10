@@ -4,15 +4,14 @@ import {
   Alert,
   FlatList,
   Keyboard,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import { BottomSheet } from '@/components/BottomSheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TAB_BAR_HEIGHT } from '@/constants/theme';
@@ -371,9 +370,8 @@ export default function ColmenaresScreen() {
       )}
 
       {/* INSPECTION FORM MODAL */}
-      <Modal visible={showInspForm} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+      <BottomSheet visible={showInspForm} onClose={() => { Keyboard.dismiss(); setShowInspForm(false); setDraft(emptyDraft); }}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
             <View style={styles.dragHandle} />
             <Text style={styles.sheetTitle}>Nueva inspección</Text>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -411,112 +409,95 @@ export default function ColmenaresScreen() {
               </View>
             </ScrollView>
           </View>
-        </View>
-      </Modal>
+      </BottomSheet>
 
       {/* NUEVO COLMENAR MODAL */}
-      <Modal visible={showApiaryForm} animationType="slide" transparent>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
-            <View style={styles.dragHandle} />
-            <Text style={styles.sheetTitle}>Nuevo colmenar</Text>
-            <Text style={styles.fieldLabel}>Nombre</Text>
-            <TextInput style={styles.formInput} value={newApiaryName} onChangeText={setNewApiaryName} placeholder="Ej. Valle del Jerte" placeholderTextColor={Colors.textMuted} />
-            <Text style={styles.fieldLabel}>Ubicación</Text>
-            {!showLocationSearch ? (
-              <TouchableOpacity
-                style={[styles.formInput, styles.locationPicker]}
-                onPress={() => setShowLocationSearch(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.locationPickerText, !newApiaryLocation && { color: Colors.textMuted }]}>
-                  {newApiaryLocation || 'Buscar localidad…'}
-                </Text>
-                <Text style={styles.locationPickerIcon}>📍</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.locationInlineSearch}>
-                <View style={styles.locationSearchRow}>
-                  <TextInput
-                    style={styles.locationSearchInput}
-                    value={locationQuery}
-                    onChangeText={handleLocationQuery}
-                    placeholder="Escribe una localidad…"
-                    placeholderTextColor={Colors.textMuted}
-                    autoFocus
-                  />
-                  {locationSearching && <ActivityIndicator size="small" color={Colors.honeyPrimary} />}
-                </View>
-                <TouchableOpacity style={styles.locationGpsRow} onPress={async () => {
-                  const loc = await getGPSLocation();
-                  if (loc) { setNewApiaryLocation(loc); setShowLocationSearch(false); setLocationQuery(''); setLocationResults([]); }
-                }}>
-                  <Text style={styles.locationGpsText}>📡 Usar mi ubicación GPS</Text>
-                </TouchableOpacity>
-                {locationResults.map((r) => (
-                  <TouchableOpacity key={r.place_id} style={styles.locationResultRow} onPress={() => selectLocation(r)}>
-                    <Text style={styles.locationResultPin}>📍</Text>
-                    <Text style={styles.locationResultText} numberOfLines={2}>
-                      {[r.address.city ?? r.address.town ?? r.address.village ?? r.name, r.address.state, r.address.country].filter(Boolean).join(', ')}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-                {locationQuery.length >= 2 && !locationSearching && locationResults.length === 0 && (
-                  <Text style={styles.locationEmpty}>Sin resultados</Text>
-                )}
+      <BottomSheet visible={showApiaryForm} onBackdropPress={Keyboard.dismiss} onClose={() => { Keyboard.dismiss(); setShowApiaryForm(false); }}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={styles.dragHandle} />
+          <Text style={styles.sheetTitle}>Nuevo colmenar</Text>
+          <Text style={styles.fieldLabel}>Nombre</Text>
+          <TextInput style={styles.formInput} value={newApiaryName} onChangeText={setNewApiaryName} placeholder="Ej. Valle del Jerte" placeholderTextColor={Colors.textMuted} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
+          <Text style={styles.fieldLabel}>Ubicación</Text>
+          {!showLocationSearch ? (
+            <TouchableOpacity style={[styles.formInput, styles.locationPicker]} onPress={() => setShowLocationSearch(true)} activeOpacity={0.7}>
+              <Text style={[styles.locationPickerText, !newApiaryLocation && { color: Colors.textMuted }]}>
+                {newApiaryLocation || 'Buscar localidad…'}
+              </Text>
+              <Text style={styles.locationPickerIcon}>📍</Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.locationInlineSearch}>
+              <View style={styles.locationSearchRow}>
+                <TextInput
+                  style={styles.locationSearchInput}
+                  value={locationQuery}
+                  onChangeText={handleLocationQuery}
+                  placeholder="Escribe una localidad…"
+                  placeholderTextColor={Colors.textMuted}
+                  autoFocus
+                />
+                {locationSearching && <ActivityIndicator size="small" color={Colors.honeyPrimary} />}
               </View>
-            )}
-            <View style={[styles.sheetButtons, { marginTop: 8 }]}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowApiaryForm(false); }}>
-                <Text style={styles.cancelBtnText}>Cancelar</Text>
+              <TouchableOpacity style={styles.locationGpsRow} onPress={async () => {
+                const loc = await getGPSLocation();
+                if (loc) { setNewApiaryLocation(loc); setShowLocationSearch(false); setLocationQuery(''); setLocationResults([]); }
+              }}>
+                <Text style={styles.locationGpsText}>📡 Usar mi ubicación GPS</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={saveApiary}>
-                <Text style={styles.saveBtnText}>Guardar</Text>
-              </TouchableOpacity>
+              {locationResults.map((r) => (
+                <TouchableOpacity key={r.place_id} style={styles.locationResultRow} onPress={() => selectLocation(r)}>
+                  <Text style={styles.locationResultPin}>📍</Text>
+                  <Text style={styles.locationResultText} numberOfLines={2}>
+                    {[r.address.city ?? r.address.town ?? r.address.village ?? r.name, r.address.state, r.address.country].filter(Boolean).join(', ')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              {locationQuery.length >= 2 && !locationSearching && locationResults.length === 0 && (
+                <Text style={styles.locationEmpty}>Sin resultados</Text>
+              )}
             </View>
+          )}
+          <View style={[styles.sheetButtons, { marginTop: 8 }]}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowApiaryForm(false); }}>
+              <Text style={styles.cancelBtnText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.saveBtn} onPress={saveApiary}>
+              <Text style={styles.saveBtnText}>Guardar</Text>
+            </TouchableOpacity>
           </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+        </View>
+      </BottomSheet>
 
       {/* NUEVA COLMENA MODAL */}
-      <Modal visible={showHiveForm} animationType="slide" transparent>
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
-                <View style={styles.dragHandle} />
-                <Text style={styles.sheetTitle}>Nueva colmena</Text>
-                <Text style={styles.fieldLabel}>Código</Text>
-                <TextInput style={styles.formInput} value={newHiveCode} onChangeText={setNewHiveCode} placeholder="Ej. C-01" placeholderTextColor={Colors.textMuted} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
-                <Text style={styles.fieldLabel}>Tipo</Text>
-                <View style={styles.pillRow}>
-                  {(['Langstroth', 'Layens', 'Dadant'] as const).map((t) => (
-                    <TouchableOpacity key={t} style={[styles.pill, newHiveType === t && { backgroundColor: Colors.honeyFaint, borderColor: Colors.honeyDark }]} onPress={() => { Keyboard.dismiss(); setNewHiveType(t); }}>
-                      <Text style={[styles.pillText, newHiveType === t && { color: Colors.honeyDark, fontFamily: 'NunitoSans-Bold' }]}>{t}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Edad de la reina (años)</Text>
-                <TextInput style={styles.formInput} value={newHiveQueenAge} onChangeText={setNewHiveQueenAge} keyboardType="number-pad" placeholder="Ej. 2" placeholderTextColor={Colors.textMuted} />
-                <Text style={styles.fieldLabel}>Marcaje</Text>
-                <TextInput style={styles.formInput} value={newHiveMarking} onChangeText={setNewHiveMarking} placeholder="Ej. Blanco · 2024" placeholderTextColor={Colors.textMuted} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
-                <View style={[styles.sheetButtons, { marginTop: 8 }]}>
-                  <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowHiveForm(false); }}>
-                    <Text style={styles.cancelBtnText}>Cancelar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.saveBtn} onPress={saveHive}>
-                    <Text style={styles.saveBtnText}>Guardar</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </TouchableWithoutFeedback>
+      <BottomSheet visible={showHiveForm} onBackdropPress={Keyboard.dismiss} onClose={() => { Keyboard.dismiss(); setShowHiveForm(false); }}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+          <View style={styles.dragHandle} />
+          <Text style={styles.sheetTitle}>Nueva colmena</Text>
+          <Text style={styles.fieldLabel}>Código</Text>
+          <TextInput style={styles.formInput} value={newHiveCode} onChangeText={setNewHiveCode} placeholder="Ej. C-01" placeholderTextColor={Colors.textMuted} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
+          <Text style={styles.fieldLabel}>Tipo</Text>
+          <View style={styles.pillRow}>
+            {(['Langstroth', 'Layens', 'Dadant'] as const).map((t) => (
+              <TouchableOpacity key={t} style={[styles.pill, newHiveType === t && { backgroundColor: Colors.honeyFaint, borderColor: Colors.honeyDark }]} onPress={() => { Keyboard.dismiss(); setNewHiveType(t); }}>
+                <Text style={[styles.pillText, newHiveType === t && { color: Colors.honeyDark, fontFamily: 'NunitoSans-Bold' }]}>{t}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+          <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Edad de la reina (años)</Text>
+          <TextInput style={styles.formInput} value={newHiveQueenAge} onChangeText={setNewHiveQueenAge} keyboardType="number-pad" placeholder="Ej. 2" placeholderTextColor={Colors.textMuted} />
+          <Text style={styles.fieldLabel}>Marcaje</Text>
+          <TextInput style={styles.formInput} value={newHiveMarking} onChangeText={setNewHiveMarking} placeholder="Ej. Blanco · 2024" placeholderTextColor={Colors.textMuted} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
+          <View style={[styles.sheetButtons, { marginTop: 8 }]}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowHiveForm(false); }}>
+              <Text style={styles.cancelBtnText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.saveBtn} onPress={saveHive}>
+              <Text style={styles.saveBtnText}>Guardar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </BottomSheet>
     </View>
   );
 }
@@ -578,7 +559,6 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 11, fontFamily: 'NunitoSans-SemiBold' },
   inspNotes: { fontSize: 12.5, color: Colors.textMuted2, fontFamily: 'NunitoSans', marginTop: 6, lineHeight: 18 },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(58,44,29,0.5)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: Colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%' },
   dragHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border2, alignSelf: 'center', marginBottom: 16 },
   sheetTitle: { fontFamily: 'Nunito-ExtraBold', fontSize: 18, color: Colors.textPrimary, marginBottom: 20 },
