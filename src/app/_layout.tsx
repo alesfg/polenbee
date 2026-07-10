@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
 import { Tabs, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -6,6 +7,7 @@ import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSession } from '@/hooks/useSession';
 import { posthog } from '@/lib/posthog';
+import { ONBOARDING_KEY } from './onboarding';
 
 import { Colors, TAB_BAR_HEIGHT } from '@/constants/theme';
 
@@ -128,12 +130,18 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (!fontsLoaded || session === undefined) return;
-    if (session === null) {
-      router.replace('/login');
-    } else {
-      posthog.identify(session.user.id, session.user.email ? { email: session.user.email } : {});
-      posthog.capture('app_open');
-    }
+    AsyncStorage.getItem(ONBOARDING_KEY).then((done) => {
+      if (!done) {
+        router.replace('/onboarding');
+        return;
+      }
+      if (session === null) {
+        router.replace('/login');
+      } else {
+        posthog.identify(session.user.id, session.user.email ? { email: session.user.email } : {});
+        posthog.capture('app_open');
+      }
+    });
   }, [fontsLoaded, session]);
 
   if (!fontsLoaded || session === undefined) return null;
@@ -151,6 +159,7 @@ export default function RootLayout() {
         <Tabs.Screen name="calendario" />
         <Tabs.Screen name="login" options={{ href: null }} />
         <Tabs.Screen name="perfil" options={{ href: null }} />
+        <Tabs.Screen name="onboarding" options={{ href: null }} />
       </Tabs>
     </SafeAreaProvider>
   );
