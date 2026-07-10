@@ -93,6 +93,35 @@ export function useTasks() {
     }
   }
 
+  async function updateTask(
+    id: string,
+    title: string,
+    scheduledFor: string,
+    type: Task['type'],
+    apiaryId?: string,
+    apiaryName?: string
+  ) {
+    const formatted = (() => {
+      const d = new Date(scheduledFor);
+      return isNaN(d.getTime()) ? scheduledFor : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+    })();
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? { ...t, title, date: formatted, type, apiary: apiaryName ?? t.apiary }
+          : t
+      )
+    );
+    if (session && !session.user.is_anonymous) {
+      await supabase.from('polenbee_tasks').update({
+        title,
+        scheduled_for: scheduledFor,
+        type,
+        apiary_id: apiaryId || null,
+      }).eq('id', id);
+    }
+  }
+
   async function deleteTask(id: string) {
     setTasks((prev) => prev.filter((t) => t.id !== id));
     if (session && !session.user.is_anonymous) {
@@ -100,5 +129,5 @@ export function useTasks() {
     }
   }
 
-  return { tasks, loading, isDone, toggleTask, addTask, deleteTask };
+  return { tasks, loading, isDone, toggleTask, addTask, updateTask, deleteTask };
 }

@@ -54,9 +54,10 @@ function currentSeason(): string {
 
 export default function CalendarioScreen() {
   const insets = useSafeAreaInsets();
-  const { tasks, isDone, toggleTask, addTask, deleteTask } = useTasks();
+  const { tasks, isDone, toggleTask, addTask, updateTask, deleteTask } = useTasks();
   const { apiaries } = useApiaries();
   const [showForm, setShowForm] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newDate, setNewDate] = useState(new Date());
   const [newType, setNewType] = useState<Task['type']>('inspection');
@@ -65,16 +66,37 @@ export default function CalendarioScreen() {
   const pending = tasks.filter((t) => !isDone(t));
   const done = tasks.filter((t) => isDone(t));
 
-  async function saveTask() {
-    if (!newTitle) return;
-    const apiary = apiaries[newApiaryIndex];
-    const isoDate = newDate.toISOString().split('T')[0];
-    await addTask(newTitle, isoDate, newType, apiary?.id, apiary?.name);
+  function openNewTask() {
+    setEditingTask(null);
     setNewTitle('');
     setNewDate(new Date());
     setNewType('inspection');
     setNewApiaryIndex(0);
+    setShowForm(true);
+  }
+
+  function openEditTask(task: Task) {
+    setEditingTask(task);
+    setNewTitle(task.title);
+    const parsed = new Date(task.date);
+    setNewDate(isNaN(parsed.getTime()) ? new Date() : parsed);
+    setNewType(task.type);
+    const idx = apiaries.findIndex((a) => a.name === task.apiary);
+    setNewApiaryIndex(idx >= 0 ? idx : 0);
+    setShowForm(true);
+  }
+
+  async function saveTask() {
+    if (!newTitle) return;
+    const apiary = apiaries[newApiaryIndex];
+    const isoDate = newDate.toISOString().split('T')[0];
+    if (editingTask) {
+      await updateTask(editingTask.id, newTitle, isoDate, newType, apiary?.id, apiary?.name);
+    } else {
+      await addTask(newTitle, isoDate, newType, apiary?.id, apiary?.name);
+    }
     setShowForm(false);
+    setEditingTask(null);
   }
 
   function confirmDelete(id: string, title: string) {
@@ -90,12 +112,14 @@ export default function CalendarioScreen() {
     return (
       <TouchableOpacity
         style={[styles.taskCard, done_ && { opacity: 0.6 }]}
+        onPress={() => openEditTask(task)}
         onLongPress={() => confirmDelete(task.id, task.title)}
-        activeOpacity={1}
+        activeOpacity={0.85}
       >
         <TouchableOpacity
           style={[styles.checkbox, done_ && { backgroundColor: Colors.greenPrimary, borderColor: Colors.greenPrimary }]}
           onPress={() => toggleTask(task.id, done_)}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
           {done_ && <Text style={styles.checkMark}>✓</Text>}
         </TouchableOpacity>
@@ -139,7 +163,7 @@ export default function CalendarioScreen() {
         )}
       </ScrollView>
 
-      <TouchableOpacity style={[styles.fab, { bottom: TAB_BAR_HEIGHT + 16 }]} onPress={() => setShowForm(true)} activeOpacity={0.85}>
+      <TouchableOpacity style={[styles.fab, { bottom: TAB_BAR_HEIGHT + 16 }]} onPress={openNewTask} activeOpacity={0.85}>
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
 
@@ -147,7 +171,7 @@ export default function CalendarioScreen() {
         <View style={styles.modalOverlay}>
           <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
             <View style={styles.dragHandle} />
-            <Text style={styles.sheetTitle}>Nueva tarea</Text>
+            <Text style={styles.sheetTitle}>{editingTask ? 'Editar tarea' : 'Nueva tarea'}</Text>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={styles.fieldLabel}>Título</Text>
               <TextInput
@@ -206,11 +230,11 @@ export default function CalendarioScreen() {
               )}
 
               <View style={[styles.sheetButtons, { marginTop: 16 }]}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowForm(false)}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => { setShowForm(false); setEditingTask(null); }}>
                   <Text style={styles.cancelBtnText}>Cancelar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.saveBtn} onPress={saveTask}>
-                  <Text style={styles.saveBtnText}>Guardar tarea</Text>
+                  <Text style={styles.saveBtnText}>{editingTask ? 'Guardar cambios' : 'Guardar tarea'}</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
