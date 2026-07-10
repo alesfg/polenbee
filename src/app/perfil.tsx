@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +16,7 @@ import { supabase } from '@/lib/supabase';
 import { signOut } from '@/lib/auth';
 import { useSession } from '@/hooks/useSession';
 import { Colors, Spacing } from '@/constants/theme';
+import { PRIVACY_POLICY_URL } from '@/constants/config';
 
 export default function PerfilScreen() {
   const insets = useSafeAreaInsets();
@@ -121,6 +123,10 @@ export default function PerfilScreen() {
           : <Text style={styles.signOutBtnText}>Cerrar sesión</Text>
         }
       </TouchableOpacity>
+
+      <TouchableOpacity style={styles.legalBtn} onPress={() => Linking.openURL(PRIVACY_POLICY_URL)} activeOpacity={0.7}>
+        <Text style={styles.legalBtnText}>Política de privacidad</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -155,4 +161,6 @@ const styles = StyleSheet.create({
 
   signOutBtn: { backgroundColor: Colors.statusDebilBg, borderRadius: 16, padding: 16, alignItems: 'center', marginTop: Spacing.md },
   signOutBtnText: { color: Colors.statusDebilFg, fontFamily: 'Nunito-ExtraBold', fontSize: 16 },
+  legalBtn: { alignItems: 'center', paddingVertical: 16 },
+  legalBtnText: { color: Colors.textMuted, fontFamily: 'NunitoSans', fontSize: 13, textDecorationLine: 'underline' },
 });
