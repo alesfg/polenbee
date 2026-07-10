@@ -71,6 +71,8 @@ const TAB_CONFIG = [
 
 function CustomTabBar({ state, navigation }: { state: any; navigation: any }) {
   const insets = useSafeAreaInsets();
+  const currentRoute = state.routes[state.index]?.name;
+  if (currentRoute === 'onboarding' || currentRoute === 'login') return null;
 
   return (
     <View style={[styles.tabBar, { paddingBottom: insets.bottom || 8 }]}>

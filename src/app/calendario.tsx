@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Alert,
+  Keyboard,
   Modal,
   ScrollView,
   StyleSheet,
@@ -90,6 +91,7 @@ export default function CalendarioScreen() {
     if (!newTitle) return;
     const apiary = apiaries[newApiaryIndex];
     const isoDate = newDate.toISOString().split('T')[0];
+    Keyboard.dismiss();
     if (editingTask) {
       await updateTask(editingTask.id, newTitle, isoDate, newType, apiary?.id, apiary?.name);
     } else {
@@ -172,7 +174,7 @@ export default function CalendarioScreen() {
           <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
             <View style={styles.dragHandle} />
             <Text style={styles.sheetTitle}>{editingTask ? 'Editar tarea' : 'Nueva tarea'}</Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <Text style={styles.fieldLabel}>Título</Text>
               <TextInput
                 style={styles.formInput}
@@ -230,7 +232,7 @@ export default function CalendarioScreen() {
               )}
 
               <View style={[styles.sheetButtons, { marginTop: 16 }]}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => { setShowForm(false); setEditingTask(null); }}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowForm(false); setEditingTask(null); }}>
                   <Text style={styles.cancelBtnText}>Cancelar</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.saveBtn} onPress={saveTask}>

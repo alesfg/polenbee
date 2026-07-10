@@ -3,12 +3,14 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Keyboard,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -188,6 +190,7 @@ export default function ColmenaresScreen() {
 
   async function saveHive() {
     if (!apiaryId || !newHiveCode) return;
+    Keyboard.dismiss();
     await addHive(apiaryId, newHiveCode, newHiveType, parseInt(newHiveQueenAge) || 2, newHiveMarking);
     setNewHiveCode(''); setNewHiveQueenAge(''); setNewHiveMarking(''); setNewHiveType('Langstroth');
     setShowHiveForm(false);
@@ -373,7 +376,7 @@ export default function ColmenaresScreen() {
           <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
             <View style={styles.dragHandle} />
             <Text style={styles.sheetTitle}>Nueva inspección</Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <PillSelector label="¿Se ha visto a la reina?" options={['Sí', 'No'] as const} value={draft.queenSeen} onSelect={(v) => setDraft((d) => ({ ...d, queenSeen: v }))}
                 colorMap={(v) => v === 'Sí' ? { fg: Colors.statusFuerteFg, bg: Colors.statusFuerteBg } : { fg: Colors.statusDebilFg, bg: Colors.statusDebilBg }} />
               <PillSelector label="Cría" options={['Abundante', 'Moderada', 'Escasa', 'Ninguna'] as const} value={draft.brood} onSelect={(v) => setDraft((d) => ({ ...d, brood: v }))} />
@@ -399,10 +402,10 @@ export default function ColmenaresScreen() {
                 onChangeText={(t) => setDraft((d) => ({ ...d, notes: t }))}
               />
               <View style={styles.sheetButtons}>
-                <TouchableOpacity style={styles.cancelBtn} onPress={() => { setShowInspForm(false); setDraft(emptyDraft); }}>
+                <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowInspForm(false); setDraft(emptyDraft); }}>
                   <Text style={styles.cancelBtnText}>Cancelar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.saveBtn} onPress={saveInspection}>
+                <TouchableOpacity style={styles.saveBtn} onPress={() => { Keyboard.dismiss(); saveInspection(); }}>
                   <Text style={styles.saveBtnText}>Guardar inspección</Text>
                 </TouchableOpacity>
               </View>
@@ -413,7 +416,9 @@ export default function ColmenaresScreen() {
 
       {/* NUEVO COLMENAR MODAL */}
       <Modal visible={showApiaryForm} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
           <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
             <View style={styles.dragHandle} />
             <Text style={styles.sheetTitle}>Nuevo colmenar</Text>
@@ -464,7 +469,7 @@ export default function ColmenaresScreen() {
               </View>
             )}
             <View style={[styles.sheetButtons, { marginTop: 8 }]}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowApiaryForm(false)}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowApiaryForm(false); }}>
                 <Text style={styles.cancelBtnText}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.saveBtn} onPress={saveApiary}>
@@ -472,39 +477,45 @@ export default function ColmenaresScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
 
       {/* NUEVA COLMENA MODAL */}
       <Modal visible={showHiveForm} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
-            <View style={styles.dragHandle} />
-            <Text style={styles.sheetTitle}>Nueva colmena</Text>
-            <Text style={styles.fieldLabel}>Código</Text>
-            <TextInput style={styles.formInput} value={newHiveCode} onChangeText={setNewHiveCode} placeholder="Ej. C-01" placeholderTextColor={Colors.textMuted} />
-            <Text style={styles.fieldLabel}>Tipo</Text>
-            <View style={styles.pillRow}>
-              {(['Langstroth', 'Layens', 'Dadant'] as const).map((t) => (
-                <TouchableOpacity key={t} style={[styles.pill, newHiveType === t && { backgroundColor: Colors.honeyFaint, borderColor: Colors.honeyDark }]} onPress={() => setNewHiveType(t)}>
-                  <Text style={[styles.pillText, newHiveType === t && { color: Colors.honeyDark, fontFamily: 'NunitoSans-Bold' }]}>{t}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Edad de la reina (años)</Text>
-            <TextInput style={styles.formInput} value={newHiveQueenAge} onChangeText={setNewHiveQueenAge} keyboardType="number-pad" placeholder="Ej. 2" placeholderTextColor={Colors.textMuted} />
-            <Text style={styles.fieldLabel}>Marcaje</Text>
-            <TextInput style={styles.formInput} value={newHiveMarking} onChangeText={setNewHiveMarking} placeholder="Ej. Blanco · 2024" placeholderTextColor={Colors.textMuted} />
-            <View style={[styles.sheetButtons, { marginTop: 8 }]}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowHiveForm(false)}>
-                <Text style={styles.cancelBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={saveHive}>
-                <Text style={styles.saveBtnText}>Guardar</Text>
-              </TouchableOpacity>
-            </View>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+                <View style={styles.dragHandle} />
+                <Text style={styles.sheetTitle}>Nueva colmena</Text>
+                <Text style={styles.fieldLabel}>Código</Text>
+                <TextInput style={styles.formInput} value={newHiveCode} onChangeText={setNewHiveCode} placeholder="Ej. C-01" placeholderTextColor={Colors.textMuted} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
+                <Text style={styles.fieldLabel}>Tipo</Text>
+                <View style={styles.pillRow}>
+                  {(['Langstroth', 'Layens', 'Dadant'] as const).map((t) => (
+                    <TouchableOpacity key={t} style={[styles.pill, newHiveType === t && { backgroundColor: Colors.honeyFaint, borderColor: Colors.honeyDark }]} onPress={() => { Keyboard.dismiss(); setNewHiveType(t); }}>
+                      <Text style={[styles.pillText, newHiveType === t && { color: Colors.honeyDark, fontFamily: 'NunitoSans-Bold' }]}>{t}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={[styles.fieldLabel, { marginTop: 12 }]}>Edad de la reina (años)</Text>
+                <TextInput style={styles.formInput} value={newHiveQueenAge} onChangeText={setNewHiveQueenAge} keyboardType="number-pad" placeholder="Ej. 2" placeholderTextColor={Colors.textMuted} />
+                <Text style={styles.fieldLabel}>Marcaje</Text>
+                <TextInput style={styles.formInput} value={newHiveMarking} onChangeText={setNewHiveMarking} placeholder="Ej. Blanco · 2024" placeholderTextColor={Colors.textMuted} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
+                <View style={[styles.sheetButtons, { marginTop: 8 }]}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowHiveForm(false); }}>
+                    <Text style={styles.cancelBtnText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.saveBtn} onPress={saveHive}>
+                    <Text style={styles.saveBtnText}>Guardar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );
