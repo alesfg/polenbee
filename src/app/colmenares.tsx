@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 11, fontFamily: 'NunitoSans-SemiBold' },
   inspNotes: { fontSize: 12.5, color: Colors.textMuted2, fontFamily: 'NunitoSans', marginTop: 6, lineHeight: 18 },
 
-  sheet: { backgroundColor: Colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%' },
+  sheet: { backgroundColor: Colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
   dragHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border2, alignSelf: 'center', marginBottom: 16 },
   sheetTitle: { fontFamily: 'Nunito-ExtraBold', fontSize: 18, color: Colors.textPrimary, marginBottom: 20 },
   fieldLabel: { fontSize: 13, fontFamily: 'NunitoSans-SemiBold', color: Colors.textPrimary, marginBottom: 8 },

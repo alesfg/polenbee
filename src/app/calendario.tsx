@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   fab: { position: 'absolute', right: 20, width: 54, height: 54, borderRadius: 17, backgroundColor: Colors.honeyPrimary, alignItems: 'center', justifyContent: 'center', shadowColor: Colors.honeyPrimary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 10, elevation: 6 },
   fabText: { color: '#fff', fontSize: 28, lineHeight: 32, fontWeight: '300' },
 
-  sheet: { backgroundColor: Colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '90%' },
+  sheet: { backgroundColor: Colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
   dragHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border2, alignSelf: 'center', marginBottom: 16 },
   sheetTitle: { fontFamily: 'Nunito-ExtraBold', fontSize: 18, color: Colors.textPrimary, marginBottom: 20 },
   fieldLabel: { fontSize: 13, fontFamily: 'NunitoSans-SemiBold', color: Colors.textPrimary, marginBottom: 8 },

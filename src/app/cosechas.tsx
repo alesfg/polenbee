@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Modal,
+  Keyboard,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { BottomSheet } from '@/components/BottomSheet';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { posthog } from '@/lib/posthog';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -237,56 +238,54 @@ function HarvestFormModal({
   newKg, setNewKg, newSeason, setNewSeason, newDate, setNewDate, onSave, insets,
 }: any) {
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View style={styles.modalOverlay}>
-        <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
-          <View style={styles.dragHandle} />
-          <Text style={styles.sheetTitle}>Registrar cosecha</Text>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {hives.length > 0 && (
-              <>
-                <Text style={styles.fieldLabel}>Colmena</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    {hives.map((h: any, i: number) => (
-                      <TouchableOpacity key={h.id} style={[styles.pill, newHiveIndex === i && { backgroundColor: Colors.honeyFaint, borderColor: Colors.honeyDark }]} onPress={() => setNewHiveIndex(i)}>
-                        <Text style={[styles.pillText, newHiveIndex === i && { color: Colors.honeyDark, fontFamily: 'NunitoSans-Bold' }]}>{h.code}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </ScrollView>
-              </>
-            )}
+    <BottomSheet visible={visible} onClose={onClose} onBackdropPress={Keyboard.dismiss}>
+      <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
+        <View style={styles.dragHandle} />
+        <Text style={styles.sheetTitle}>Registrar cosecha</Text>
+        <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {hives.length > 0 && (
+            <>
+              <Text style={styles.fieldLabel}>Colmena</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {hives.map((h: any, i: number) => (
+                    <TouchableOpacity key={h.id} style={[styles.pill, newHiveIndex === i && { backgroundColor: Colors.honeyFaint, borderColor: Colors.honeyDark }]} onPress={() => setNewHiveIndex(i)}>
+                      <Text style={[styles.pillText, newHiveIndex === i && { color: Colors.honeyDark, fontFamily: 'NunitoSans-Bold' }]}>{h.code}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </>
+          )}
 
-            <Text style={styles.fieldLabel}>Kg recolectados</Text>
-            <TextInput style={styles.formInput} value={newKg} onChangeText={setNewKg} keyboardType="decimal-pad" placeholder="Ej. 18.5" placeholderTextColor={Colors.textMuted} />
+          <Text style={styles.fieldLabel}>Kg recolectados</Text>
+          <TextInput style={styles.formInput} value={newKg} onChangeText={setNewKg} keyboardType="decimal-pad" placeholder="Ej. 18.5" placeholderTextColor={Colors.textMuted} />
 
-            <Text style={styles.fieldLabel}>Temporada</Text>
-            <TextInput style={styles.formInput} value={newSeason} onChangeText={setNewSeason} placeholder="Ej. Primavera 2026" placeholderTextColor={Colors.textMuted} />
+          <Text style={styles.fieldLabel}>Temporada</Text>
+          <TextInput style={styles.formInput} value={newSeason} onChangeText={setNewSeason} placeholder="Ej. Primavera 2026" placeholderTextColor={Colors.textMuted} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
 
-            <Text style={styles.fieldLabel}>Fecha</Text>
-            <DateTimePicker
-              value={newDate}
-              mode="date"
-              display="spinner"
-              onChange={(_: any, date: Date | undefined) => date && setNewDate(date)}
-              locale="es-ES"
-              textColor={Colors.textPrimary}
-              style={{ marginBottom: 8 }}
-            />
+          <Text style={styles.fieldLabel}>Fecha</Text>
+          <DateTimePicker
+            value={newDate}
+            mode="date"
+            display="spinner"
+            onChange={(_: any, date: Date | undefined) => date && setNewDate(date)}
+            locale="es-ES"
+            textColor={Colors.textPrimary}
+            style={{ marginBottom: 8 }}
+          />
 
-            <View style={styles.sheetButtons}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={onClose}>
-                <Text style={styles.cancelBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={onSave}>
-                <Text style={styles.saveBtnText}>Guardar</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </View>
+          <View style={styles.sheetButtons}>
+            <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); onClose(); }}>
+              <Text style={styles.cancelBtnText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.saveBtn} onPress={() => { Keyboard.dismiss(); onSave(); }}>
+              <Text style={styles.saveBtnText}>Guardar</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
-    </Modal>
+    </BottomSheet>
   );
 }
 
@@ -325,8 +324,7 @@ const styles = StyleSheet.create({
   progressBarFill: { height: '100%', backgroundColor: Colors.honeyPrimary, borderRadius: 4 },
   hiveKg: { width: 52, textAlign: 'right', fontFamily: 'NunitoSans-SemiBold', fontSize: 13, color: Colors.textPrimary },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(58,44,29,0.5)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: Colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, maxHeight: '85%' },
+  sheet: { backgroundColor: Colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
   dragHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: Colors.border2, alignSelf: 'center', marginBottom: 16 },
   sheetTitle: { fontFamily: 'Nunito-ExtraBold', fontSize: 18, color: Colors.textPrimary, marginBottom: 20 },
   fieldLabel: { fontSize: 13, fontFamily: 'NunitoSans-SemiBold', color: Colors.textPrimary, marginBottom: 8 },
