@@ -111,11 +111,12 @@ export default function PolenScreen() {
     }
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
+      const loc = locationReady ? location : 'España';
       setImageUri(asset.uri);
       setImageBase64(asset.base64 ?? null);
       setView('analyzing');
-      posthog.capture('feature_used', { feature: 'pollen_analyzer', location });
-      const res = await analyzePollenImage(asset.base64 ?? '', location);
+      posthog.capture('feature_used', { feature: 'pollen_analyzer', location: loc });
+      const res = await analyzePollenImage(asset.base64 ?? '', loc);
       setResults(res);
       setView('results');
     }

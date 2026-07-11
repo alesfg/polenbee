@@ -10,7 +10,7 @@ import {
   View,
 } from 'react-native';
 import { BottomSheet } from '@/components/BottomSheet';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { DateField } from '@/components/DateField';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing, TAB_BAR_HEIGHT } from '@/constants/theme';
@@ -63,6 +63,7 @@ export default function CalendarioScreen() {
   const [newDate, setNewDate] = useState(new Date());
   const [newType, setNewType] = useState<Task['type']>('inspection');
   const [newApiaryIndex, setNewApiaryIndex] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   const pending = tasks.filter((t) => !isDone(t));
   const done = tasks.filter((t) => isDone(t));
@@ -88,15 +89,17 @@ export default function CalendarioScreen() {
   }
 
   async function saveTask() {
-    if (!newTitle) return;
+    if (!newTitle.trim() || saving) return;
+    setSaving(true);
     const apiary = apiaries[newApiaryIndex];
     const isoDate = newDate.toISOString().split('T')[0];
     Keyboard.dismiss();
     if (editingTask) {
-      await updateTask(editingTask.id, newTitle, isoDate, newType, apiary?.id, apiary?.name);
+      await updateTask(editingTask.id, newTitle.trim(), isoDate, newType, apiary?.id, apiary?.name);
     } else {
-      await addTask(newTitle, isoDate, newType, apiary?.id, apiary?.name);
+      await addTask(newTitle.trim(), isoDate, newType, apiary?.id, apiary?.name);
     }
+    setSaving(false);
     setShowForm(false);
     setEditingTask(null);
   }
@@ -184,15 +187,7 @@ export default function CalendarioScreen() {
               />
 
               <Text style={styles.fieldLabel}>Fecha</Text>
-              <DateTimePicker
-                value={newDate}
-                mode="date"
-                display="spinner"
-                onChange={(_, date) => date && setNewDate(date)}
-                locale="es-ES"
-                textColor={Colors.textPrimary}
-                style={{ marginBottom: 8 }}
-              />
+              <DateField value={newDate} onChange={setNewDate} />
 
               <Text style={styles.fieldLabel}>Tipo</Text>
               <View style={styles.pillRow}>
@@ -234,7 +229,11 @@ export default function CalendarioScreen() {
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowForm(false); setEditingTask(null); }}>
                   <Text style={styles.cancelBtnText}>Cancelar</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.saveBtn} onPress={saveTask}>
+                <TouchableOpacity
+                  style={[styles.saveBtn, !newTitle.trim() && styles.saveBtnDisabled]}
+                  disabled={!newTitle.trim()}
+                  onPress={saveTask}
+                >
                   <Text style={styles.saveBtnText}>{editingTask ? 'Guardar cambios' : 'Guardar tarea'}</Text>
                 </TouchableOpacity>
               </View>
@@ -277,5 +276,6 @@ const styles = StyleSheet.create({
   cancelBtn: { flex: 1, padding: 14, borderRadius: 14, backgroundColor: Colors.honeyFaint, alignItems: 'center' },
   cancelBtnText: { color: Colors.honeyDark, fontFamily: 'Nunito-ExtraBold', fontSize: 15 },
   saveBtn: { flex: 2, padding: 14, borderRadius: 14, backgroundColor: Colors.greenDark, alignItems: 'center' },
+  saveBtnDisabled: { opacity: 0.45 },
   saveBtnText: { color: '#fff', fontFamily: 'Nunito-ExtraBold', fontSize: 15 },
 });

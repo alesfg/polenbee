@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { BottomSheet } from '@/components/BottomSheet';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { DateField } from '@/components/DateField';
 import { posthog } from '@/lib/posthog';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -28,14 +28,18 @@ export default function CosechasScreen() {
   const [newKg, setNewKg] = useState('');
   const [newSeason, setNewSeason] = useState('');
   const [newDate, setNewDate] = useState(new Date());
+  const [saving, setSaving] = useState(false);
 
   async function saveHarvest() {
     const hive = hives[newHiveIndex];
-    if (!hive || !newKg) return;
+    const kg = parseFloat(newKg.replace(',', '.'));
+    if (!hive || !newKg || isNaN(kg) || saving) return;
+    setSaving(true);
     const isoDate = newDate.toISOString().split('T')[0];
-    await addHarvest(hive.id, parseFloat(newKg), newSeason, isoDate);
+    await addHarvest(hive.id, kg, newSeason, isoDate);
     posthog.capture('feature_used', { feature: 'new_harvest' });
     setNewKg(''); setNewSeason(''); setNewDate(new Date()); setNewHiveIndex(0);
+    setSaving(false);
     setShowForm(false);
   }
 
@@ -237,6 +241,7 @@ function HarvestFormModal({
   visible, onClose, hives, newHiveIndex, setNewHiveIndex,
   newKg, setNewKg, newSeason, setNewSeason, newDate, setNewDate, onSave, insets,
 }: any) {
+  const canSave = hives.length > 0 && newKg.trim().length > 0;
   return (
     <BottomSheet visible={visible} onClose={onClose} onBackdropPress={Keyboard.dismiss}>
       <View style={[styles.sheet, { paddingBottom: insets.bottom + 16 }]}>
@@ -265,21 +270,17 @@ function HarvestFormModal({
           <TextInput style={styles.formInput} value={newSeason} onChangeText={setNewSeason} placeholder="Ej. Primavera 2026" placeholderTextColor={Colors.textMuted} returnKeyType="done" onSubmitEditing={Keyboard.dismiss} />
 
           <Text style={styles.fieldLabel}>Fecha</Text>
-          <DateTimePicker
-            value={newDate}
-            mode="date"
-            display="spinner"
-            onChange={(_: any, date: Date | undefined) => date && setNewDate(date)}
-            locale="es-ES"
-            textColor={Colors.textPrimary}
-            style={{ marginBottom: 8 }}
-          />
+          <DateField value={newDate} onChange={setNewDate} />
 
           <View style={styles.sheetButtons}>
             <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); onClose(); }}>
               <Text style={styles.cancelBtnText}>Cancelar</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.saveBtn} onPress={() => { Keyboard.dismiss(); onSave(); }}>
+            <TouchableOpacity
+              style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
+              disabled={!canSave}
+              onPress={() => { Keyboard.dismiss(); onSave(); }}
+            >
               <Text style={styles.saveBtnText}>Guardar</Text>
             </TouchableOpacity>
           </View>
@@ -336,5 +337,6 @@ const styles = StyleSheet.create({
   cancelBtn: { flex: 1, padding: 14, borderRadius: 14, backgroundColor: Colors.honeyFaint, alignItems: 'center' },
   cancelBtnText: { color: Colors.honeyDark, fontFamily: 'Nunito-ExtraBold', fontSize: 15 },
   saveBtn: { flex: 2, padding: 14, borderRadius: 14, backgroundColor: Colors.greenDark, alignItems: 'center' },
+  saveBtnDisabled: { opacity: 0.45 },
   saveBtnText: { color: '#fff', fontFamily: 'Nunito-ExtraBold', fontSize: 15 },
 });

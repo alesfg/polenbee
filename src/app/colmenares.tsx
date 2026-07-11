@@ -95,6 +95,7 @@ export default function ColmenaresScreen() {
   const [showApiaryForm, setShowApiaryForm] = useState(false);
   const [showHiveForm, setShowHiveForm] = useState(false);
   const [draft, setDraft] = useState<InspectionDraft>(emptyDraft);
+  const [saving, setSaving] = useState(false);
 
   // Apiary form state
   const [newApiaryName, setNewApiaryName] = useState('');
@@ -126,7 +127,8 @@ export default function ColmenaresScreen() {
   }
 
   async function saveInspection() {
-    if (!hive) return;
+    if (!hive || saving) return;
+    setSaving(true);
     await addInspection(hive.id, {
       queenSeen: draft.queenSeen !== 'No',
       brood: draft.brood || 'Moderada',
@@ -138,6 +140,7 @@ export default function ColmenaresScreen() {
       notes: draft.notes,
     });
     posthog.capture('feature_used', { feature: 'new_inspection' });
+    setSaving(false);
     setShowInspForm(false);
     setDraft(emptyDraft);
   }
@@ -181,17 +184,21 @@ export default function ColmenaresScreen() {
   }
 
   async function saveApiary() {
-    if (!newApiaryName) return;
-    await addApiary(newApiaryName, newApiaryLocation);
+    if (!newApiaryName.trim() || saving) return;
+    setSaving(true);
+    await addApiary(newApiaryName.trim(), newApiaryLocation);
     setNewApiaryName(''); setNewApiaryLocation('');
+    setSaving(false);
     setShowApiaryForm(false);
   }
 
   async function saveHive() {
-    if (!apiaryId || !newHiveCode) return;
+    if (!apiaryId || !newHiveCode.trim() || saving) return;
+    setSaving(true);
     Keyboard.dismiss();
-    await addHive(apiaryId, newHiveCode, newHiveType, parseInt(newHiveQueenAge) || 2, newHiveMarking);
+    await addHive(apiaryId, newHiveCode.trim(), newHiveType, parseInt(newHiveQueenAge) || 2, newHiveMarking);
     setNewHiveCode(''); setNewHiveQueenAge(''); setNewHiveMarking(''); setNewHiveType('Langstroth');
+    setSaving(false);
     setShowHiveForm(false);
   }
 
@@ -462,7 +469,11 @@ export default function ColmenaresScreen() {
             <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowApiaryForm(false); }}>
               <Text style={styles.cancelBtnText}>Cancelar</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.saveBtn} onPress={saveApiary}>
+            <TouchableOpacity
+              style={[styles.saveBtn, !newApiaryName.trim() && styles.saveBtnDisabled]}
+              disabled={!newApiaryName.trim()}
+              onPress={saveApiary}
+            >
               <Text style={styles.saveBtnText}>Guardar</Text>
             </TouchableOpacity>
           </View>
@@ -492,7 +503,11 @@ export default function ColmenaresScreen() {
             <TouchableOpacity style={styles.cancelBtn} onPress={() => { Keyboard.dismiss(); setShowHiveForm(false); }}>
               <Text style={styles.cancelBtnText}>Cancelar</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.saveBtn} onPress={saveHive}>
+            <TouchableOpacity
+              style={[styles.saveBtn, !newHiveCode.trim() && styles.saveBtnDisabled]}
+              disabled={!newHiveCode.trim()}
+              onPress={saveHive}
+            >
               <Text style={styles.saveBtnText}>Guardar</Text>
             </TouchableOpacity>
           </View>
@@ -587,5 +602,6 @@ const styles = StyleSheet.create({
   cancelBtn: { flex: 1, padding: 14, borderRadius: 14, backgroundColor: Colors.honeyFaint, alignItems: 'center' },
   cancelBtnText: { color: Colors.honeyDark, fontFamily: 'Nunito-ExtraBold', fontSize: 15 },
   saveBtn: { flex: 2, padding: 14, borderRadius: 14, backgroundColor: Colors.greenDark, alignItems: 'center' },
+  saveBtnDisabled: { opacity: 0.45 },
   saveBtnText: { color: '#fff', fontFamily: 'Nunito-ExtraBold', fontSize: 15 },
 });

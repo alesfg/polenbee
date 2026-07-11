@@ -57,11 +57,14 @@ export function useTasks() {
     apiaryName?: string
   ) {
     if (!session || session.user.is_anonymous) {
+      const parsed = new Date(scheduledFor);
       const newTask: Task = {
         id: `local-${Date.now()}`,
         title,
         type,
-        date: scheduledFor,
+        date: isNaN(parsed.getTime())
+          ? scheduledFor
+          : parsed.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
         apiary: apiaryName ?? '',
         done: false,
       };

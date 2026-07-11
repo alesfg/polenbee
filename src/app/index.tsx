@@ -18,6 +18,12 @@ function getStatusColor(status: string) {
   return { fg: Colors.statusDebilFg, bg: Colors.statusDebilBg };
 }
 
+function getForageDotColor(index: string) {
+  if (index === 'Alto') return '#D9F29B';
+  if (index === 'Medio') return '#FFE08A';
+  return '#FFB3A7';
+}
+
 function getTaskBadgeColor(type: string) {
   switch (type) {
     case 'treatment': return { bg: '#FDECEA', fg: '#C0392B' };
@@ -66,12 +72,10 @@ export default function InicioScreen() {
             <Text style={styles.weatherTemp}>{weather.temp}°</Text>
             <Text style={styles.weatherCondition}>{weather.condition} · Viento {weather.wind}</Text>
           </View>
-          <View style={styles.sunIcon}>
-            <View style={styles.sunCore} />
-          </View>
+          <Text style={styles.weatherIcon}>{weather.icon}</Text>
         </View>
         <View style={styles.forageRow}>
-          <View style={styles.forageDot} />
+          <View style={[styles.forageDot, { backgroundColor: getForageDotColor(weather.forageIndex) }]} />
           <Text style={styles.forageText}>Índice de pecoreo: {weather.forageIndex}</Text>
           <Text style={styles.humidityText}>Humedad {weather.humidity}%</Text>
         </View>
@@ -179,10 +183,9 @@ const styles = StyleSheet.create({
   weatherTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   weatherTemp: { fontSize: 38, fontFamily: 'Nunito-ExtraBold', color: '#fff', lineHeight: 42 },
   weatherCondition: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 4, fontFamily: 'NunitoSans' },
-  sunIcon: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
-  sunCore: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(255,228,168,0.9)' },
+  weatherIcon: { fontSize: 38, lineHeight: 46 },
   forageRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 12, padding: 8 },
-  forageDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#EAF7C9' },
+  forageDot: { width: 8, height: 8, borderRadius: 4 },
   forageText: { fontSize: 13, fontFamily: 'NunitoSans-Bold', color: '#fff', flex: 1 },
   humidityText: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontFamily: 'NunitoSans' },
   forecastRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
