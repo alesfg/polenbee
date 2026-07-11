@@ -9,61 +9,14 @@ import { useSession } from '@/hooks/useSession';
 import { posthog } from '@/lib/posthog';
 import { ONBOARDING_KEY } from './onboarding';
 
+import { CalendarIcon, FlowerIcon, HiveIcon, HouseIcon, JarIcon } from '@/components/TabIcons';
 import { Colors, TAB_BAR_HEIGHT } from '@/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
 
-function HouseIcon({ color }: { color: string }) {
-  return (
-    <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ width: 0, height: 0, borderLeftWidth: 12, borderRightWidth: 12, borderBottomWidth: 9, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderBottomColor: color, position: 'absolute', top: 0 }} />
-      <View style={{ width: 18, height: 12, backgroundColor: color, borderRadius: 2, marginTop: 4 }} />
-    </View>
-  );
-}
-
-function HexagonIcon({ color }: { color: string }) {
-  return (
-    <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ width: 18, height: 18, backgroundColor: color, borderRadius: 4, transform: [{ rotate: '30deg' }] }} />
-    </View>
-  );
-}
-
-function FlowerIcon({ color }: { color: string }) {
-  return (
-    <View style={{ width: 22, height: 22, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: color, position: 'absolute' }} />
-      {[0, 45, 90, 135].map((angle) => (
-        <View key={angle} style={{ position: 'absolute', width: 6, height: 10, borderRadius: 3, backgroundColor: color, transform: [{ rotate: `${angle}deg` }, { translateY: -7 }] }} />
-      ))}
-    </View>
-  );
-}
-
-function JarIcon({ color }: { color: string }) {
-  return (
-    <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ width: 8, height: 3, backgroundColor: color, borderRadius: 1, marginBottom: 1 }} />
-      <View style={{ width: 14, height: 14, backgroundColor: color, borderRadius: 3, borderBottomLeftRadius: 5, borderBottomRightRadius: 5 }} />
-    </View>
-  );
-}
-
-function CalendarIcon({ color }: { color: string }) {
-  return (
-    <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
-      <View style={{ width: 18, height: 16, backgroundColor: color, borderRadius: 3, overflow: 'hidden' }}>
-        <View style={{ height: 5, backgroundColor: color }} />
-        <View style={{ flex: 1, backgroundColor: '#fff', opacity: 0.25, margin: 2, borderRadius: 1 }} />
-      </View>
-    </View>
-  );
-}
-
 const TAB_CONFIG = [
   { name: 'index', label: 'Inicio', Icon: HouseIcon },
-  { name: 'colmenares', label: 'Colmenares', Icon: HexagonIcon },
+  { name: 'colmenares', label: 'Colmenares', Icon: HiveIcon },
   { name: 'polen', label: 'Polen', Icon: FlowerIcon, center: true },
   { name: 'cosechas', label: 'Cosechas', Icon: JarIcon },
   { name: 'calendario', label: 'Calendario', Icon: CalendarIcon },
@@ -90,7 +43,7 @@ function CustomTabBar({ state, navigation }: { state: any; navigation: any }) {
           return (
             <TouchableOpacity key={route.key} onPress={onPress} style={styles.centerTabWrapper} activeOpacity={0.8}>
               <View style={[styles.centerBadge, { backgroundColor: isFocused ? Colors.greenDark : Colors.honeyFaint }]}>
-                <Icon color={isFocused ? '#fff' : Colors.textMuted} />
+                <Icon color={isFocused ? '#fff' : Colors.textMuted} size={28} />
               </View>
               <Text style={[styles.tabLabel, { color: isFocused ? Colors.greenDark : Colors.tabInactive }]}>
                 {label}

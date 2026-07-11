@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { FlowerIcon } from '@/components/TabIcons';
 import { Colors, Spacing, TAB_BAR_HEIGHT } from '@/constants/theme';
 import { useApiaries } from '@/hooks/useApiaries';
 import { useHarvests } from '@/hooks/useHarvests';
@@ -108,10 +109,7 @@ export default function InicioScreen() {
       {/* Pollen CTA */}
       <TouchableOpacity style={styles.pollenCTA} activeOpacity={0.85} onPress={() => router.push('/polen')}>
         <View style={styles.pollenIconBadge}>
-          <View style={styles.flowerCenter} />
-          {[0, 45, 90, 135].map((a) => (
-            <View key={a} style={[styles.flowerPetal, { transform: [{ rotate: `${a}deg` }, { translateY: -9 }] }]} />
-          ))}
+          <FlowerIcon color={Colors.honeySoft} size={26} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.pollenCTATitle}>Analiza el polen de tus abejas</Text>
@@ -200,8 +198,6 @@ const styles = StyleSheet.create({
 
   pollenCTA: { backgroundColor: Colors.greenDark, borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
   pollenIconBadge: { width: 46, height: 46, borderRadius: 14, backgroundColor: Colors.greenPrimary, alignItems: 'center', justifyContent: 'center' },
-  flowerCenter: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.honeySoft, position: 'absolute' },
-  flowerPetal: { position: 'absolute', width: 6, height: 10, borderRadius: 3, backgroundColor: Colors.honeySoft },
   pollenCTATitle: { color: '#fff', fontFamily: 'Nunito-ExtraBold', fontSize: 15 },
   pollenCTASubtitle: { color: '#CFE0BE', fontSize: 12.5, marginTop: 2, fontFamily: 'NunitoSans' },
   chevron: { color: '#CFE0BE', fontSize: 22, fontWeight: '300' },
