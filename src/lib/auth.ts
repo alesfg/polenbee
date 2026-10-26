@@ -1,28 +1,14 @@
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
-export async function signIn(email: string, password: string) {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
-}
-
-export async function signUp(email: string, password: string) {
-  const { error } = await supabase.auth.signUp({ email, password });
-  if (error) throw error;
-}
-
-export async function signInAnonymously() {
-  const { error } = await supabase.auth.signInAnonymously();
-  if (error) throw error;
-}
-
-export async function signOut() {
-  await supabase.auth.signOut();
-}
-
-export async function getSession(): Promise<Session | null> {
+// There is no login screen: every device gets an anonymous Supabase user so its
+// pollen history is stored under its own id.
+export async function ensureSession(): Promise<Session | null> {
   const { data } = await supabase.auth.getSession();
-  return data.session;
+  if (data.session) return data.session;
+  const { data: signed, error } = await supabase.auth.signInAnonymously();
+  if (error) throw error;
+  return signed.session;
 }
 
 export function onAuthChange(callback: (session: Session | null) => void) {

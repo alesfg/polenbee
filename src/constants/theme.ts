@@ -50,5 +50,3 @@ export const Spacing = {
   xl: 24,
   xxl: 32,
 } as const;
-
-export const TAB_BAR_HEIGHT = 84;

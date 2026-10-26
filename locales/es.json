@@ -1,0 +1,12 @@
+{
+  "ios": {
+    "CFBundleDisplayName": "PolenBee",
+    "CFBundleName": "PolenBee",
+    "NSCameraUsageDescription": "PolenBee necesita acceso a tu cámara para fotografiar las abejas.",
+    "NSPhotoLibraryUsageDescription": "PolenBee necesita acceso a tus fotos para analizar el polen.",
+    "NSLocationWhenInUseUsageDescription": "PolenBee usa tu ubicación para saber qué plantas florecen cerca de tus abejas."
+  },
+  "android": {
+    "app_name": "PolenBee"
+  }
+}

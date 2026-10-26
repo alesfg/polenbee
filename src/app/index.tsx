@@ -1,220 +1,350 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FlowerIcon } from '@/components/TabIcons';
-import { Colors, Spacing, TAB_BAR_HEIGHT } from '@/constants/theme';
-import { useApiaries } from '@/hooks/useApiaries';
-import { useHarvests } from '@/hooks/useHarvests';
-import { useHives } from '@/hooks/useHives';
-import { useSession } from '@/hooks/useSession';
-import { useTasks } from '@/hooks/useTasks';
-import { useWeather } from '@/hooks/useWeather';
+import { AnalyzingView } from '@/components/AnalyzingView';
+import { DateTimeModal } from '@/components/DateTimeModal';
+import { HistoryRow } from '@/components/HistoryRow';
+import { Bee } from '@/components/illustrations/Bee';
+import { Flower } from '@/components/illustrations/Flower';
+import { LocationSearchModal } from '@/components/LocationSearchModal';
+import { ResultView } from '@/components/ResultView';
+import { Colors, Spacing } from '@/constants/theme';
+import { usePollenAnalyses } from '@/hooks/usePollenAnalyses';
+import { APP_NAME, locale, t } from '@/i18n';
+import { analyzePollen } from '@/lib/analyzePollen';
+import { getCurrentPlace, hasLocationPermission } from '@/lib/location';
+import { exifDate, exifPlace } from '@/lib/photoMeta';
+import { posthog } from '@/lib/posthog';
+import { PollenAnalysis, Place } from '@/types/pollen';
 
-const today = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+const LAST_PLACE_KEY = 'last_place';
 
-function getStatusColor(status: string) {
-  if (status === 'Fuerte') return { fg: Colors.statusFuerteFg, bg: Colors.statusFuerteBg };
-  if (status === 'Media') return { fg: Colors.statusMediaFg, bg: Colors.statusMediaBg };
-  return { fg: Colors.statusDebilFg, bg: Colors.statusDebilBg };
+interface Draft {
+  imageUri: string;
+  place: Place | null;
+  placeFromPhoto: boolean;
+  takenAt: Date;
+  dateFromPhoto: boolean;
 }
 
-function getForageDotColor(index: string) {
-  if (index === 'Alto') return '#D9F29B';
-  if (index === 'Medio') return '#FFE08A';
-  return '#FFB3A7';
+type ViewState =
+  | { kind: 'capture' }
+  | { kind: 'review'; draft: Draft }
+  | { kind: 'analyzing'; draft: Draft }
+  | { kind: 'result'; imageUri: string; analysis: PollenAnalysis }
+  | { kind: 'error'; draft: Draft; message: string };
+
+function useClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  return now;
 }
 
-function getTaskBadgeColor(type: string) {
-  switch (type) {
-    case 'treatment': return { bg: '#FDECEA', fg: '#C0392B' };
-    case 'feeding': return { bg: Colors.greenLight, fg: Colors.greenDark };
-    case 'harvest': return { bg: Colors.honeySoft, fg: Colors.honeyDark };
-    case 'inspection': return { bg: '#E8F4FD', fg: '#2980B9' };
-    default: return { bg: Colors.border, fg: Colors.textMuted };
-  }
+function formatWhen(d: Date) {
+  const today = new Date();
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const time = d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === today.toDateString()) return t('home.today', { time });
+  if (d.toDateString() === yesterday.toDateString()) return t('home.yesterday', { time });
+  return `${d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}, ${time}`;
 }
 
-export default function InicioScreen() {
+function EditableRow({ icon, title, subtitle, onPress }: { icon: string; title: string; subtitle: string; onPress: () => void }) {
+  return (
+    <TouchableOpacity style={styles.placeCard} onPress={onPress} activeOpacity={0.8}>
+      <View style={styles.placeIcon}>
+        <Text style={{ fontSize: 18 }}>{icon}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.placeLabel} numberOfLines={1}>{title}</Text>
+        <Text style={styles.placeMeta} numberOfLines={1}>{subtitle}</Text>
+      </View>
+      <Text style={styles.placeChange}>{t('home.edit')}</Text>
+    </TouchableOpacity>
+  );
+}
+
+export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const session = useSession();
-  const { apiaries } = useApiaries();
-  const { hives } = useHives();
-  const { tasks, isDone } = useTasks();
+  const now = useClock();
+  const { analyses, addLocal } = usePollenAnalyses();
+  const [view, setView] = useState<ViewState>({ kind: 'capture' });
+  const [place, setPlace] = useState<Place | null>(null);
+  const [locating, setLocating] = useState(true);
+  const [showLocation, setShowLocation] = useState(false);
+  const [showDate, setShowDate] = useState(false);
 
-  const { weather } = useWeather();
-  const { totalKg } = useHarvests();
-  const greeting = session?.user?.email?.split('@')[0] ?? 'Apicultor';
-  const pendingTasks = tasks.filter((t) => !isDone(t)).slice(0, 3);
-  const attentionHives = hives.filter((h) => h.attentionReason);
+  useEffect(() => {
+    (async () => {
+      const saved = await AsyncStorage.getItem(LAST_PLACE_KEY);
+      if (saved) setPlace(JSON.parse(saved));
+      if (await hasLocationPermission()) {
+        const current = await getCurrentPlace();
+        if (current) rememberPlace(current);
+      }
+      setLocating(false);
+    })();
+  }, []);
+
+  function rememberPlace(p: Place) {
+    setPlace(p);
+    AsyncStorage.setItem(LAST_PLACE_KEY, JSON.stringify(p));
+  }
+
+  const zoneAnalyses = useMemo(
+    () => (place ? analyses.filter((a) => a.placeName === place.label) : []),
+    [analyses, place]
+  );
+
+  async function pickImage(camera: boolean) {
+    let result: ImagePicker.ImagePickerResult;
+    if (camera) {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) return;
+      result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.9, exif: true });
+    } else {
+      result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.9, exif: true });
+    }
+    if (result.canceled || !result.assets[0]) return;
+
+    const asset = result.assets[0];
+    // Gallery photos may be from another day or place: prefer what the photo itself says, then let the user fix it.
+    const photoDate = camera ? null : exifDate(asset.exif);
+    const draft: Draft = {
+      imageUri: asset.uri,
+      place,
+      placeFromPhoto: false,
+      takenAt: photoDate ?? new Date(),
+      dateFromPhoto: !!photoDate,
+    };
+    setView({ kind: 'review', draft });
+    posthog.capture('pollen_photo_selected', { source: camera ? 'camera' : 'gallery', exif_date: !!photoDate });
+
+    if (!camera) {
+      const photoPlace = await exifPlace(asset.exif);
+      if (photoPlace) {
+        setView((v) => (v.kind === 'review' && v.draft.imageUri === asset.uri
+          ? { kind: 'review', draft: { ...v.draft, place: photoPlace, placeFromPhoto: true } }
+          : v));
+      }
+    }
+  }
+
+  function updateDraft(patch: Partial<Draft>) {
+    setView((v) => (v.kind === 'review' ? { kind: 'review', draft: { ...v.draft, ...patch } } : v));
+  }
+
+  async function analyze(draft: Draft) {
+    if (!draft.place) {
+      setShowLocation(true);
+      return;
+    }
+    setView({ kind: 'analyzing', draft });
+    const res = await analyzePollen(draft.imageUri, draft.place, draft.takenAt);
+    if (res.ok) {
+      addLocal(res.analysis);
+      setView({ kind: 'result', imageUri: draft.imageUri, analysis: res.analysis });
+      posthog.capture('pollen_analysis_completed', {
+        top: res.analysis.species[0]?.nombreCientifico,
+        quality: res.analysis.photoQuality,
+      });
+    } else {
+      setView({ kind: 'error', draft, message: res.message });
+      posthog.capture('pollen_analysis_failed');
+    }
+  }
+
+  const draft = view.kind === 'review' ? view.draft : null;
 
   return (
-    <ScrollView
-      style={[styles.screen, { paddingTop: insets.top }]}
-      contentContainerStyle={[styles.content, { paddingBottom: TAB_BAR_HEIGHT + Spacing.lg }]}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Header */}
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hola, {greeting}</Text>
-          <Text style={styles.dateText}>{today}</Text>
-        </View>
-        <TouchableOpacity style={styles.avatar} onPress={() => router.push('/perfil')} activeOpacity={0.8}>
-          <View style={styles.beeDot} />
+        <TouchableOpacity
+          style={styles.brand}
+          onPress={() => setView({ kind: 'capture' })}
+          disabled={view.kind === 'analyzing'}
+          activeOpacity={0.8}
+        >
+          <Bee size={38} animated={false} />
+          <Text style={styles.brandText}>{APP_NAME}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.historyBtn} onPress={() => router.push('/historial')} activeOpacity={0.8}>
+          <Text style={styles.historyBtnText}>{t('home.history')}</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Weather widget */}
-      <View style={styles.weatherCard}>
-        <View style={styles.weatherTop}>
-          <View>
-            <Text style={styles.weatherTemp}>{weather.temp}°</Text>
-            <Text style={styles.weatherCondition}>{weather.condition} · Viento {weather.wind}</Text>
-          </View>
-          <Text style={styles.weatherIcon}>{weather.icon}</Text>
-        </View>
-        <View style={styles.forageRow}>
-          <View style={[styles.forageDot, { backgroundColor: getForageDotColor(weather.forageIndex) }]} />
-          <Text style={styles.forageText}>Índice de pecoreo: {weather.forageIndex}</Text>
-          <Text style={styles.humidityText}>Humedad {weather.humidity}%</Text>
-        </View>
-        <View style={styles.forecastRow}>
-          {weather.forecast.map((f) => (
-            <View key={f.day} style={styles.forecastItem}>
-              <Text style={styles.forecastDay}>{f.day}</Text>
-              <Text style={styles.forecastTemp}>{f.temp}°</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      {/* Stats */}
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={[styles.statNumber, { color: Colors.honeyDark }]}>{hives.length}</Text>
-          <Text style={styles.statLabel}>Colmenas</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statNumber, { color: Colors.greenPrimary }]}>{apiaries.length}</Text>
-          <Text style={styles.statLabel}>Colmenares</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={[styles.statNumber, { color: Colors.honeyDark }]}>{totalKg} kg</Text>
-          <Text style={styles.statLabel}>Miel temporada</Text>
-        </View>
-      </View>
-
-      {/* Pollen CTA */}
-      <TouchableOpacity style={styles.pollenCTA} activeOpacity={0.85} onPress={() => router.push('/polen')}>
-        <View style={styles.pollenIconBadge}>
-          <FlowerIcon color={Colors.honeySoft} size={26} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.pollenCTATitle}>Analiza el polen de tus abejas</Text>
-          <Text style={styles.pollenCTASubtitle}>Descubre qué están pecoreando ahora mismo</Text>
-        </View>
-        <Text style={styles.chevron}>›</Text>
-      </TouchableOpacity>
-
-      {/* Requieren atención */}
-      {attentionHives.length > 0 && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Requieren atención</Text>
-          {attentionHives.map((h) => {
-            const sc = getStatusColor(h.status);
-            return (
-              <View key={h.id} style={[styles.attentionCard, { borderLeftColor: sc.fg }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.attentionCode}>{h.code}</Text>
-                  <Text style={styles.attentionReason}>{h.attentionReason}</Text>
-                </View>
-                <View style={[styles.statusPill, { backgroundColor: sc.bg }]}>
-                  <Text style={[styles.statusPillText, { color: sc.fg }]}>{h.status}</Text>
-                </View>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xxl }]}
+        showsVerticalScrollIndicator={false}
+      >
+        {view.kind === 'capture' && (
+          <Animated.View entering={FadeIn.duration(300)}>
+            <TouchableOpacity style={styles.placeCard} onPress={() => setShowLocation(true)} activeOpacity={0.8}>
+              <View style={styles.placeIcon}>
+                <Text style={{ fontSize: 18 }}>📍</Text>
               </View>
-            );
-          })}
-        </View>
-      )}
-
-      {/* Próximas tareas */}
-      {pendingTasks.length > 0 && (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Próximas tareas</Text>
-            <TouchableOpacity onPress={() => router.push('/calendario')}>
-              <Text style={styles.seeAll}>Ver todas</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.placeLabel} numberOfLines={1}>
+                  {place ? place.label : locating ? t('home.locating') : t('home.choosePlace')}
+                </Text>
+                <Text style={styles.placeMeta}>{formatWhen(now)}</Text>
+              </View>
+              {locating && !place ? (
+                <ActivityIndicator size="small" color={Colors.honeyPrimary} />
+              ) : (
+                <Text style={styles.placeChange}>{place ? t('home.change') : t('home.choose')}</Text>
+              )}
             </TouchableOpacity>
-          </View>
-          {pendingTasks.map((t) => {
-            const bc = getTaskBadgeColor(t.type);
-            return (
-              <View key={t.id} style={styles.taskCard}>
-                <View style={[styles.taskBadge, { backgroundColor: bc.bg }]}>
-                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: bc.fg }} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.taskTitle}>{t.title}</Text>
-                  <Text style={styles.taskMeta}>{t.date}{t.apiary ? ` · ${t.apiary}` : ''}</Text>
-                </View>
+
+            <View style={styles.hero}>
+              <View style={styles.heroFlowers}>
+                <Flower size={30} petal="#F4A7B9" />
+                <Flower size={22} petal="#B9A5E8" />
               </View>
-            );
-          })}
-        </View>
+              <Bee size={150} pollenColor="#E8742C" />
+              <Text style={styles.heroTitle}>{t('home.heroTitle')}</Text>
+              <Text style={styles.heroText}>
+                {t('home.heroText')}
+              </Text>
+              <TouchableOpacity style={styles.primaryBtn} onPress={() => pickImage(true)} activeOpacity={0.85}>
+                <Text style={styles.primaryBtnText}>{t('home.takePhoto')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.linkBtn} onPress={() => pickImage(false)} activeOpacity={0.7}>
+                <Text style={styles.linkBtnText}>{t('home.fromGallery')}</Text>
+              </TouchableOpacity>
+            </View>
+
+            {zoneAnalyses.length > 0 && (
+              <Animated.View entering={FadeInDown.delay(150)}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>{t('home.recentInArea')}</Text>
+                  <TouchableOpacity onPress={() => router.push('/historial')}>
+                    <Text style={styles.sectionLink}>{t('home.seeAll')}</Text>
+                  </TouchableOpacity>
+                </View>
+                {zoneAnalyses.slice(0, 3).map((a) => (
+                  <HistoryRow key={a.id} analysis={a} onPress={() => router.push({ pathname: '/historial', params: { id: a.id } })} />
+                ))}
+              </Animated.View>
+            )}
+          </Animated.View>
+        )}
+
+        {draft && (
+          <Animated.View entering={FadeInDown.duration(300)}>
+            <Image source={{ uri: draft.imageUri }} style={styles.reviewPhoto} contentFit="cover" />
+            <Text style={styles.reviewTitle}>{t('review.title')}</Text>
+            <Text style={styles.reviewText}>{t('review.text')}</Text>
+            <EditableRow
+              icon="📍"
+              title={draft.place ? draft.place.label : t('review.choosePlace')}
+              subtitle={draft.place ? (draft.placeFromPhoto ? t('review.placeFromPhoto') : t('review.placeCurrent')) : t('review.placeRequired')}
+              onPress={() => setShowLocation(true)}
+            />
+            <EditableRow
+              icon="🕒"
+              title={formatWhen(draft.takenAt)}
+              subtitle={draft.dateFromPhoto ? t('review.dateFromPhoto') : t('review.dateTaken')}
+              onPress={() => setShowDate(true)}
+            />
+            <TouchableOpacity style={[styles.primaryBtn, { marginTop: 8 }]} onPress={() => analyze(draft)} activeOpacity={0.85}>
+              <Text style={styles.primaryBtnText}>{draft.place ? t('review.analyze') : t('review.choosePlace')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.linkBtn} onPress={() => setView({ kind: 'capture' })}>
+              <Text style={styles.linkBtnText}>{t('review.changePhoto')}</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+
+        {view.kind === 'analyzing' && <AnalyzingView imageUri={view.draft.imageUri} placeLabel={view.draft.place?.label ?? ''} />}
+
+        {view.kind === 'result' && (
+          <ResultView
+            analysis={view.analysis}
+            imageUri={view.imageUri}
+            onNew={() => setView({ kind: 'capture' })}
+            onHistory={() => router.push('/historial')}
+          />
+        )}
+
+        {view.kind === 'error' && (
+          <Animated.View entering={FadeInDown.duration(300)} style={styles.errorCard}>
+            <Bee size={90} pollenColor="#D9CBB0" animated={false} />
+            <Text style={styles.errorTitle}>{t('error.title')}</Text>
+            <Text style={styles.errorText}>{view.message}</Text>
+            <TouchableOpacity style={styles.primaryBtn} onPress={() => analyze(view.draft)} activeOpacity={0.85}>
+              <Text style={styles.primaryBtnText}>{t('error.retry')}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.linkBtn} onPress={() => setView({ kind: 'capture' })}>
+              <Text style={styles.linkBtnText}>{t('error.back')}</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+      </ScrollView>
+
+      <LocationSearchModal
+        visible={showLocation}
+        onClose={() => setShowLocation(false)}
+        onSelect={(p) => {
+          rememberPlace(p);
+          updateDraft({ place: p, placeFromPhoto: false });
+        }}
+      />
+      {draft && (
+        <DateTimeModal
+          visible={showDate}
+          value={draft.takenAt}
+          onClose={() => setShowDate(false)}
+          onChange={(d) => updateDraft({ takenAt: d, dateFromPhoto: false })}
+        />
       )}
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.bg },
-  content: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.xs },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
-  greeting: { fontFamily: 'Nunito-Black', fontSize: 24, color: Colors.textPrimary },
-  dateText: { fontSize: 14, color: Colors.textMuted, marginTop: 2, fontFamily: 'NunitoSans' },
-  avatar: { width: 44, height: 44, borderRadius: 14, backgroundColor: Colors.honeyLight, alignItems: 'center', justifyContent: 'center' },
-  beeDot: { width: 20, height: 20, borderRadius: 10, backgroundColor: Colors.honeyDark },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  brandText: { fontFamily: 'Nunito-Black', fontSize: 22, color: Colors.textPrimary },
+  historyBtn: { backgroundColor: Colors.honeyFaint, borderRadius: 100, paddingHorizontal: 14, paddingVertical: 8 },
+  historyBtnText: { fontFamily: 'Nunito-ExtraBold', fontSize: 13.5, color: Colors.honeyDark },
+  content: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, width: '100%', maxWidth: 560, alignSelf: 'center' },
 
-  weatherCard: { backgroundColor: Colors.honeyPrimary, borderRadius: 22, padding: 18, marginBottom: 16, shadowColor: Colors.honeyPrimary, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 6 },
-  weatherTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  weatherTemp: { fontSize: 38, fontFamily: 'Nunito-ExtraBold', color: '#fff', lineHeight: 42 },
-  weatherCondition: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 4, fontFamily: 'NunitoSans' },
-  weatherIcon: { fontSize: 38, lineHeight: 46 },
-  forageRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 12, padding: 8 },
-  forageDot: { width: 8, height: 8, borderRadius: 4 },
-  forageText: { fontSize: 13, fontFamily: 'NunitoSans-Bold', color: '#fff', flex: 1 },
-  humidityText: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontFamily: 'NunitoSans' },
-  forecastRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 },
-  forecastItem: { alignItems: 'center', flex: 1 },
-  forecastDay: { fontSize: 12, color: 'rgba(255,255,255,0.85)', fontFamily: 'NunitoSans' },
-  forecastTemp: { fontSize: 15, fontFamily: 'NunitoSans-Bold', color: '#fff', marginTop: 4 },
+  placeCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.card, borderRadius: 18, padding: 12, marginBottom: 12, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  placeIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: Colors.greenLight, alignItems: 'center', justifyContent: 'center' },
+  placeLabel: { fontFamily: 'NunitoSans-Bold', fontSize: 14.5, color: Colors.textPrimary },
+  placeMeta: { fontFamily: 'NunitoSans', fontSize: 12, color: Colors.textMuted, marginTop: 1 },
+  placeChange: { fontFamily: 'NunitoSans-Bold', fontSize: 13, color: Colors.honeyDark },
 
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
-  statCard: { flex: 1, backgroundColor: Colors.card, borderRadius: 16, padding: 12, alignItems: 'center', shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
-  statNumber: { fontFamily: 'Nunito-ExtraBold', fontSize: 20 },
-  statLabel: { fontSize: 11, color: Colors.textMuted, marginTop: 2, fontFamily: 'NunitoSans', textAlign: 'center' },
+  hero: { backgroundColor: Colors.honeySoft, borderRadius: 28, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14, alignItems: 'center', marginTop: 4, marginBottom: 24, overflow: 'hidden' },
+  heroFlowers: { position: 'absolute', top: 18, right: 18, flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
+  heroTitle: { fontFamily: 'Nunito-Black', fontSize: 22, color: Colors.textPrimary, textAlign: 'center', marginTop: 4 },
+  heroText: { fontFamily: 'NunitoSans', fontSize: 14.5, color: Colors.textMuted2, textAlign: 'center', lineHeight: 21, marginTop: 8, marginBottom: 18 },
+  primaryBtn: { alignSelf: 'stretch', backgroundColor: Colors.greenDark, borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
+  primaryBtnText: { color: '#fff', fontFamily: 'Nunito-ExtraBold', fontSize: 16.5 },
+  linkBtn: { paddingVertical: 12, alignItems: 'center' },
+  linkBtnText: { color: Colors.honeyDark, fontFamily: 'Nunito-ExtraBold', fontSize: 14.5 },
 
-  pollenCTA: { backgroundColor: Colors.greenDark, borderRadius: 20, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 16 },
-  pollenIconBadge: { width: 46, height: 46, borderRadius: 14, backgroundColor: Colors.greenPrimary, alignItems: 'center', justifyContent: 'center' },
-  pollenCTATitle: { color: '#fff', fontFamily: 'Nunito-ExtraBold', fontSize: 15 },
-  pollenCTASubtitle: { color: '#CFE0BE', fontSize: 12.5, marginTop: 2, fontFamily: 'NunitoSans' },
-  chevron: { color: '#CFE0BE', fontSize: 22, fontWeight: '300' },
+  reviewPhoto: { width: '100%', aspectRatio: 4 / 3, borderRadius: 24, backgroundColor: Colors.honeyFaint, marginBottom: 16 },
+  reviewTitle: { fontFamily: 'Nunito-Black', fontSize: 22, color: Colors.textPrimary },
+  reviewText: { fontFamily: 'NunitoSans', fontSize: 14, color: Colors.textMuted2, lineHeight: 20, marginTop: 4, marginBottom: 14 },
 
-  section: { marginBottom: 16 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  sectionTitle: { fontFamily: 'Nunito-ExtraBold', fontSize: 15, color: Colors.textPrimary, marginBottom: 8 },
-  seeAll: { fontSize: 13, color: Colors.honeyDark, fontFamily: 'NunitoSans-SemiBold' },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  sectionTitle: { fontFamily: 'Nunito-ExtraBold', fontSize: 16, color: Colors.textPrimary },
+  sectionLink: { fontFamily: 'NunitoSans-Bold', fontSize: 13, color: Colors.honeyDark },
 
-  attentionCard: { backgroundColor: Colors.card, borderRadius: 16, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8, borderLeftWidth: 4, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
-  attentionCode: { fontFamily: 'NunitoSans-Bold', fontSize: 14, color: Colors.textPrimary },
-  attentionReason: { fontSize: 12, color: Colors.textMuted, marginTop: 2, fontFamily: 'NunitoSans' },
-  statusPill: { borderRadius: 100, paddingHorizontal: 10, paddingVertical: 4 },
-  statusPillText: { fontSize: 12, fontFamily: 'NunitoSans-SemiBold' },
-
-  taskCard: { backgroundColor: Colors.card, borderRadius: 14, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
-  taskBadge: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
-  taskTitle: { fontFamily: 'NunitoSans-SemiBold', fontSize: 13.5, color: Colors.textPrimary },
-  taskMeta: { fontSize: 12, color: Colors.textMuted, marginTop: 2, fontFamily: 'NunitoSans' },
+  errorCard: { backgroundColor: Colors.card, borderRadius: 24, padding: 24, alignItems: 'center', gap: 8, marginTop: 24 },
+  errorTitle: { fontFamily: 'Nunito-Black', fontSize: 20, color: Colors.textPrimary, textAlign: 'center' },
+  errorText: { fontFamily: 'NunitoSans', fontSize: 14, color: Colors.textMuted2, textAlign: 'center', lineHeight: 20, marginBottom: 12 },
 });

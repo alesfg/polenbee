@@ -1,209 +1,196 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
-import {
-  Dimensions,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import Animated, {
+  interpolate,
+  interpolateColor,
+  SharedValue,
+  useAnimatedRef,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors } from '@/constants/theme';
 
-const { width } = Dimensions.get('window');
+import { OddsScene, PhotoScene, PlaceScene, SCENE_SIZE, WelcomeScene } from '@/components/illustrations/OnboardingScenes';
+import { Colors } from '@/constants/theme';
+import { t } from '@/i18n';
+import { requestLocationPermission } from '@/lib/location';
+import { posthog } from '@/lib/posthog';
+
+export const ONBOARDING_KEY = 'onboarding_v2_complete';
 
 const SLIDES = [
   {
-    emoji: null,
-    logo: true,
-    title: 'Bienvenido a PolenBee',
-    subtitle: 'Tu colmenar, siempre a mano.\nGestiona, analiza y cosecha más inteligente.',
+    Scene: WelcomeScene,
+    blob: '#FCEBC9',
+    title: t('onboarding.welcome.title'),
+    subtitle: t('onboarding.welcome.subtitle'),
   },
   {
-    emoji: '🏡',
-    logo: false,
-    title: 'Gestiona tus colmenares',
-    subtitle: 'Registra apiarios y colmenas. Lleva el control de inspecciones, reinas y cosechas en un solo lugar.',
+    Scene: PhotoScene,
+    blob: '#EAF1DE',
+    title: t('onboarding.photo.title'),
+    subtitle: t('onboarding.photo.subtitle'),
   },
   {
-    emoji: '🌸',
-    logo: false,
-    title: 'Analiza el polen',
-    subtitle: 'Fotografía las flores y la IA identifica el tipo de polen que recolectan tus abejas, con localización exacta.',
+    Scene: PlaceScene,
+    blob: '#E6F0F4',
+    title: t('onboarding.place.title'),
+    subtitle: t('onboarding.place.subtitle'),
+  },
+  {
+    Scene: OddsScene,
+    blob: '#F7E3EA',
+    title: t('onboarding.odds.title'),
+    subtitle: t('onboarding.odds.subtitle'),
   },
 ] as const;
 
-export const ONBOARDING_KEY = 'onboarding_complete';
+function Dot({ index, scrollX, width }: { index: number; scrollX: SharedValue<number>; width: number }) {
+  const style = useAnimatedStyle(() => {
+    const p = scrollX.value / width;
+    const focus = interpolate(Math.abs(p - index), [0, 1], [1, 0], 'clamp');
+    return {
+      width: 8 + focus * 18,
+      backgroundColor: interpolateColor(focus, [0, 1], [Colors.border2, Colors.honeyPrimary]),
+    };
+  });
+  return <Animated.View style={[styles.dot, style]} />;
+}
+
+function Slide({ index, scrollX, width, active }: { index: number; scrollX: SharedValue<number>; width: number; active: boolean }) {
+  const { Scene, title, subtitle } = SLIDES[index];
+  const parallax = useAnimatedStyle(() => {
+    const offset = scrollX.value - index * width;
+    return {
+      opacity: interpolate(Math.abs(offset), [0, width * 0.6], [1, 0], 'clamp'),
+      transform: [{ translateX: offset * 0.35 }, { scale: interpolate(Math.abs(offset), [0, width], [1, 0.8], 'clamp') }],
+    };
+  });
+  const textStyle = useAnimatedStyle(() => {
+    const offset = scrollX.value - index * width;
+    return {
+      opacity: interpolate(Math.abs(offset), [0, width * 0.5], [1, 0], 'clamp'),
+      transform: [{ translateY: interpolate(Math.abs(offset), [0, width], [0, 30], 'clamp') }],
+    };
+  });
+
+  return (
+    <View style={[styles.slide, { width }]}>
+      <Animated.View style={[styles.illustration, parallax]}>
+        <Scene active={active} />
+      </Animated.View>
+      <Animated.View style={[styles.textArea, textStyle]}>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.subtitle}>{subtitle}</Text>
+      </Animated.View>
+    </View>
+  );
+}
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const scrollRef = useRef<ScrollView>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const { width } = useWindowDimensions();
+  const scrollRef = useAnimatedRef<Animated.ScrollView>();
+  const scrollX = useSharedValue(0);
+  const [index, setIndex] = useState(0);
+  const [finishing, setFinishing] = useState(false);
+
+  const onScroll = useAnimatedScrollHandler((e) => {
+    scrollX.value = e.contentOffset.x;
+  });
+
+  const blobStyle = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(
+      scrollX.value / width,
+      SLIDES.map((_, i) => i),
+      SLIDES.map((s) => s.blob)
+    ),
+    transform: [{ rotate: `${(scrollX.value / width) * 40}deg` }],
+  }));
 
   async function finish() {
+    if (finishing) return;
+    setFinishing(true);
+    // Ask for location here, after explaining why we need it.
+    await requestLocationPermission();
     await AsyncStorage.setItem(ONBOARDING_KEY, 'true');
-    router.replace('/login');
+    posthog.capture('onboarding_completed');
+    router.replace('/');
   }
 
-  function next() {
-    if (currentIndex < SLIDES.length - 1) {
-      const nextIdx = currentIndex + 1;
-      scrollRef.current?.scrollTo({ x: nextIdx * width, animated: true });
-      setCurrentIndex(nextIdx);
-    } else {
-      finish();
-    }
+  function goTo(i: number) {
+    scrollRef.current?.scrollTo({ x: i * width, animated: true });
+    setIndex(i);
   }
 
-  const isLast = currentIndex === SLIDES.length - 1;
+  const isLast = index === SLIDES.length - 1;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 24 }]}>
-      {!isLast && (
-        <TouchableOpacity style={styles.skipBtn} onPress={finish}>
-          <Text style={styles.skipText}>Saltar</Text>
-        </TouchableOpacity>
-      )}
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom + 20 }]}>
+      <Animated.View style={[styles.blob, { top: insets.top + 40, left: width / 2 - 170 }, blobStyle]} />
 
-      <ScrollView
+      <View style={styles.topBar}>
+        {!isLast && (
+          <TouchableOpacity onPress={() => goTo(SLIDES.length - 1)} hitSlop={12}>
+            <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <Animated.ScrollView
         ref={scrollRef}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
-        scrollEnabled={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        onMomentumScrollEnd={(e) => setIndex(Math.round(e.nativeEvent.contentOffset.x / width))}
         style={{ flex: 1 }}
       >
-        {SLIDES.map((slide, i) => (
-          <View key={i} style={[styles.slide, { width }]}>
-            <View style={styles.illustrationArea}>
-              {slide.logo ? (
-                <Image
-                  source={require('../../assets/images/icon.png')}
-                  style={styles.logo}
-                  resizeMode="contain"
-                />
-              ) : (
-                <View style={styles.emojiCircle}>
-                  <Text style={styles.emojiLarge}>{slide.emoji}</Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.textArea}>
-              <Text style={styles.title}>{slide.title}</Text>
-              <Text style={styles.subtitle}>{slide.subtitle}</Text>
-            </View>
-          </View>
+        {SLIDES.map((_, i) => (
+          <Slide key={i} index={i} scrollX={scrollX} width={width} active={i === index} />
         ))}
-      </ScrollView>
+      </Animated.ScrollView>
 
       <View style={styles.footer}>
         <View style={styles.dots}>
           {SLIDES.map((_, i) => (
-            <View key={i} style={[styles.dot, i === currentIndex && styles.dotActive]} />
+            <Dot key={i} index={i} scrollX={scrollX} width={width} />
           ))}
         </View>
-        <TouchableOpacity style={styles.nextBtn} onPress={next} activeOpacity={0.85}>
-          <Text style={styles.nextBtnText}>{isLast ? 'Empezar 🐝' : 'Siguiente'}</Text>
+        <TouchableOpacity
+          style={[styles.nextBtn, isLast && styles.nextBtnLast]}
+          onPress={() => (isLast ? finish() : goTo(index + 1))}
+          activeOpacity={0.85}
+          disabled={finishing}
+        >
+          <Text style={styles.nextBtnText}>{isLast ? t('onboarding.start') : t('onboarding.next')}</Text>
         </TouchableOpacity>
+        {isLast && <Text style={styles.permissionNote}>{t('onboarding.permissionNote')}</Text>}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.bg,
-  },
-  skipBtn: {
-    alignSelf: 'flex-end',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-  },
-  skipText: {
-    color: Colors.textMuted,
-    fontFamily: 'NunitoSans-SemiBold',
-    fontSize: 14,
-  },
-  slide: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
-  illustrationArea: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logo: {
-    width: 160,
-    height: 160,
-    borderRadius: 36,
-  },
-  emojiCircle: {
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: Colors.honeyFaint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emojiLarge: {
-    fontSize: 72,
-  },
-  textArea: {
-    flex: 1,
-    alignItems: 'center',
-    paddingTop: 8,
-  },
-  title: {
-    fontFamily: 'Nunito-Black',
-    fontSize: 26,
-    color: Colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  subtitle: {
-    fontFamily: 'NunitoSans',
-    fontSize: 16,
-    color: Colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  footer: {
-    paddingHorizontal: 24,
-    gap: 20,
-    alignItems: 'center',
-  },
-  dots: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.border2,
-  },
-  dotActive: {
-    width: 24,
-    backgroundColor: Colors.honeyPrimary,
-  },
-  nextBtn: {
-    width: '100%',
-    backgroundColor: Colors.greenDark,
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  nextBtnText: {
-    color: '#fff',
-    fontFamily: 'Nunito-ExtraBold',
-    fontSize: 17,
-  },
+  container: { flex: 1, backgroundColor: Colors.bg, overflow: 'hidden' },
+  blob: { position: 'absolute', width: 340, height: 340, borderRadius: 150 },
+  topBar: { height: 44, alignItems: 'flex-end', justifyContent: 'center', paddingHorizontal: 24 },
+  skipText: { color: Colors.textMuted, fontFamily: 'NunitoSans-SemiBold', fontSize: 14 },
+  slide: { flex: 1, alignItems: 'center', paddingHorizontal: 32 },
+  illustration: { height: SCENE_SIZE + 40, alignItems: 'center', justifyContent: 'center' },
+  textArea: { alignItems: 'center', paddingTop: 24, maxWidth: 420 },
+  title: { fontFamily: 'Nunito-Black', fontSize: 27, color: Colors.textPrimary, textAlign: 'center', marginBottom: 12 },
+  subtitle: { fontFamily: 'NunitoSans', fontSize: 16, color: Colors.textMuted2, textAlign: 'center', lineHeight: 24 },
+  footer: { paddingHorizontal: 24, gap: 18, alignItems: 'center' },
+  dots: { flexDirection: 'row', gap: 8, height: 8 },
+  dot: { height: 8, borderRadius: 4 },
+  nextBtn: { width: '100%', maxWidth: 480, backgroundColor: Colors.greenDark, paddingVertical: 16, borderRadius: 16, alignItems: 'center' },
+  nextBtnLast: { backgroundColor: Colors.honeyPrimary },
+  nextBtnText: { color: '#fff', fontFamily: 'Nunito-ExtraBold', fontSize: 17 },
+  permissionNote: { fontFamily: 'NunitoSans', fontSize: 12, color: Colors.textMuted, marginTop: -6 },
 });

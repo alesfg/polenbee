@@ -1,87 +1,52 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
+import { t } from '@/i18n';
+import { mapAnalysisRow } from '@/lib/analyzePollen';
 import { supabase } from '@/lib/supabase';
-import { PollenHistoryEntry, PollenResult, POLLEN_HISTORY } from '@/data/mockData';
+import { PollenAnalysis } from '@/types/pollen';
 import { useSession } from './useSession';
 
-async function uploadPollenImage(userId: string, imageUri: string): Promise<string | null> {
-  try {
-    const path = `${userId}/${Date.now()}.jpg`;
-    const response = await fetch(imageUri);
-    const blob = await response.blob();
-    const { error } = await supabase.storage.from('pollen-images').upload(path, blob, { contentType: 'image/jpeg' });
-    if (error) return null;
-    const { data } = supabase.storage.from('pollen-images').getPublicUrl(path);
-    return data.publicUrl;
-  } catch {
-    return null;
+export interface ZoneGroup {
+  zone: string;
+  analyses: PollenAnalysis[];
+}
+
+export function groupByZone(analyses: PollenAnalysis[]): ZoneGroup[] {
+  const groups = new Map<string, PollenAnalysis[]>();
+  for (const a of analyses) {
+    const zone = a.placeName ?? t('history.noLocation');
+    groups.set(zone, [...(groups.get(zone) ?? []), a]);
   }
+  return [...groups.entries()].map(([zone, list]) => ({ zone, analyses: list }));
 }
 
 export function usePollenAnalyses() {
   const session = useSession();
-  const [analyses, setAnalyses] = useState<PollenHistoryEntry[]>([]);
+  const [analyses, setAnalyses] = useState<PollenAnalysis[]>([]);
   const [loading, setLoading] = useState(true);
 
-  async function fetch() {
-    if (!session || session.user.is_anonymous) {
-      setAnalyses(POLLEN_HISTORY);
-      setLoading(false);
+  const refresh = useCallback(async () => {
+    if (!session) {
+      setLoading(session === undefined);
       return;
     }
-    setLoading(true);
     const { data } = await supabase
       .from('polenbee_pollen_analyses')
-      .select('id, analyzed_at, image_url, species, polenbee_apiaries(name)')
-      .order('analyzed_at', { ascending: false });
-
-    if (data) {
-      const mapped: PollenHistoryEntry[] = (data as any[])
-        .map((row) => {
-          const species: PollenResult[] = Array.isArray(row.species) ? row.species : [];
-          if (!species.length) return null;
-          return {
-            id: row.id,
-            date: new Date(row.analyzed_at).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-            apiary: row.polenbee_apiaries?.name ?? '',
-            topSpecies: species[0],
-            allSpecies: species,
-            imageUri: row.image_url ?? undefined,
-          };
-        })
-        .filter(Boolean) as PollenHistoryEntry[];
-      setAnalyses(mapped);
-    }
+      .select('id, created_at, photo_taken_at, photo_quality, species, latitude, longitude, place_name, pollen_color, pollen_color_name, context')
+      .order('photo_taken_at', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (data) setAnalyses(data.map(mapAnalysisRow).filter((a) => a.species.length > 0));
     setLoading(false);
-  }
+  }, [session]);
 
-  useEffect(() => { if (session !== undefined) fetch(); }, [session]);
+  useEffect(() => { refresh(); }, [refresh]);
 
-  async function saveAnalysis(species: PollenResult[], imageUri?: string, apiaryId?: string, apiaryName?: string) {
-    const entry: PollenHistoryEntry = {
-      id: `local-${Date.now()}`,
-      date: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-      apiary: apiaryName ?? '',
-      topSpecies: species[0],
-      allSpecies: species,
-      imageUri,
-    };
-    setAnalyses((prev) => [entry, ...prev]);
+  const addLocal = useCallback(
+    (a: PollenAnalysis) =>
+      setAnalyses((prev) => [a, ...prev].sort((x, y) => y.photoTakenAt.localeCompare(x.photoTakenAt))),
+    []
+  );
 
-    if (!session || session.user.is_anonymous) return;
-
-    let imageUrl: string | null = null;
-    if (imageUri) {
-      imageUrl = await uploadPollenImage(session.user.id, imageUri);
-    }
-
-    await supabase.from('polenbee_pollen_analyses').insert({
-      user_id: session.user.id,
-      apiary_id: apiaryId || null,
-      species,
-      image_url: imageUrl,
-      analyzed_at: new Date().toISOString().split('T')[0],
-    });
-  }
-
-  return { analyses, loading, saveAnalysis };
+  return { analyses, loading, refresh, addLocal };
 }
