@@ -1,13 +1,14 @@
 import { Session } from '@supabase/supabase-js';
 import { useEffect, useState } from 'react';
-import { onAuthChange, getSession } from '@/lib/auth';
+import { ensureSession, onAuthChange } from '@/lib/auth';
 
+// undefined while starting up, null if the anonymous sign-in failed (e.g. offline).
 export function useSession() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
 
   useEffect(() => {
-    getSession().then(setSession);
-    return onAuthChange(setSession);
+    ensureSession().then(setSession).catch(() => setSession(null));
+    return onAuthChange((s) => { if (s) setSession(s); });
   }, []);
 
   return session;

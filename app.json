@@ -1,18 +1,22 @@
 {
   "expo": {
-    "name": "PolenBee",
+    "name": "PollenBee",
     "slug": "polenbee",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "polenbee",
     "userInterfaceStyle": "automatic",
+    "locales": {
+      "es": "./locales/es.json"
+    },
     "ios": {
       "bundleIdentifier": "com.floresstudios.polenbee",
       "supportsTablet": false,
       "icon": "./assets/images/icon.png",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "CFBundleAllowMixedLocalizations": true
       }
     },
     "android": {
@@ -24,7 +28,6 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ]
@@ -38,14 +41,14 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "PolenBee necesita acceso a tus fotos para analizar el polen.",
-          "cameraPermission": "PolenBee necesita acceso a tu cámara para fotografiar las abejas."
+          "photosPermission": "PollenBee needs access to your photos to analyse the pollen.",
+          "cameraPermission": "PollenBee needs access to your camera to photograph your bees."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "PolenBee necesita tu ubicación para identificar el polen de tu zona."
+          "locationWhenInUsePermission": "PollenBee uses your location to know which plants are blooming near your bees."
         }
       ],
       [
@@ -55,7 +58,8 @@
           "image": "./assets/images/icon.png",
           "imageWidth": 200
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

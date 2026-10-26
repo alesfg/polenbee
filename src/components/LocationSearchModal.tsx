@@ -1,4 +1,3 @@
-import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -13,60 +12,27 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing } from '@/constants/theme';
-
-interface NominatimResult {
-  place_id: number;
-  display_name: string;
-  name: string;
-  address: { city?: string; town?: string; village?: string; county?: string; state?: string; country?: string };
-}
-
-export function formatLocationResult(r: NominatimResult): string {
-  const a = r.address;
-  const parts = [a.city ?? a.town ?? a.village ?? r.name, a.state, a.country].filter(Boolean);
-  return parts.join(', ');
-}
-
-async function searchLocations(query: string): Promise<NominatimResult[]> {
-  if (query.trim().length < 2) return [];
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&accept-language=es&addressdetails=1`;
-    const res = await fetch(url, { headers: { 'User-Agent': 'PolenBee/1.0' } });
-    return await res.json();
-  } catch {
-    return [];
-  }
-}
-
-export async function getGPSLocation(): Promise<string | null> {
-  try {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') return null;
-    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    const [place] = await Location.reverseGeocodeAsync({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
-    return [place.city, place.region, place.country].filter(Boolean).join(', ') || null;
-  } catch {
-    return null;
-  }
-}
+import { t } from '@/i18n';
+import { getCurrentPlace, searchPlaces } from '@/lib/location';
+import { Place } from '@/types/pollen';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
-  onSelect: (label: string) => void;
-  showGPS?: boolean;
+  onSelect: (place: Place) => void;
 }
 
-export function LocationSearchModal({ visible, onClose, onSelect, showGPS = true }: Props) {
+export function LocationSearchModal({ visible, onClose, onSelect }: Props) {
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
-  const [results, setResults] = useState<NominatimResult[]>([]);
+  const [results, setResults] = useState<Place[]>([]);
   const [searching, setSearching] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!visible) { setQuery(''); setResults([]); }
+    if (!visible) { setQuery(''); setResults([]); setGpsError(false); }
   }, [visible]);
 
   function handleChange(text: string) {
@@ -75,26 +41,26 @@ export function LocationSearchModal({ visible, onClose, onSelect, showGPS = true
     debounceRef.current = setTimeout(async () => {
       if (text.trim().length < 2) { setResults([]); return; }
       setSearching(true);
-      const r = await searchLocations(text);
-      setResults(r);
+      setResults(await searchPlaces(text));
       setSearching(false);
     }, 400);
   }
 
   async function handleGPS() {
     setGpsLoading(true);
-    const loc = await getGPSLocation();
+    setGpsError(false);
+    const place = await getCurrentPlace();
     setGpsLoading(false);
-    if (loc) { onSelect(loc); onClose(); }
+    if (place) { onSelect(place); onClose(); } else setGpsError(true);
   }
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={[styles.container, { paddingTop: insets.top + 16 }]}>
         <View style={styles.header}>
-          <Text style={styles.title}>Seleccionar ubicación</Text>
+          <Text style={styles.title}>{t('location.title')}</Text>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Text style={styles.closeBtnText}>Cancelar</Text>
+            <Text style={styles.closeBtnText}>{t('location.cancel')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -104,7 +70,7 @@ export function LocationSearchModal({ visible, onClose, onSelect, showGPS = true
             style={styles.searchInput}
             value={query}
             onChangeText={handleChange}
-            placeholder="Buscar localidad, municipio…"
+            placeholder={t('location.searchPlaceholder')}
             placeholderTextColor={Colors.textMuted}
             autoFocus
             clearButtonMode="while-editing"
@@ -112,35 +78,32 @@ export function LocationSearchModal({ visible, onClose, onSelect, showGPS = true
           {searching && <ActivityIndicator size="small" color={Colors.honeyPrimary} style={{ marginLeft: 8 }} />}
         </View>
 
-        {showGPS && (
-          <TouchableOpacity style={styles.gpsRow} onPress={handleGPS} disabled={gpsLoading}>
-            <View style={styles.gpsBadge}>
-              {gpsLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text>📡</Text>}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.gpsTitle}>Usar mi ubicación actual</Text>
-              <Text style={styles.gpsSub}>Detectar automáticamente via GPS</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity style={styles.gpsRow} onPress={handleGPS} disabled={gpsLoading}>
+          <View style={styles.gpsBadge}>
+            {gpsLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text>📡</Text>}
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.gpsTitle}>{t('location.useCurrent')}</Text>
+            <Text style={styles.gpsSub}>
+              {gpsError ? t('location.gpsError') : t('location.gpsHint')}
+            </Text>
+          </View>
+        </TouchableOpacity>
 
         <FlatList
           data={results}
-          keyExtractor={(r) => String(r.place_id)}
+          keyExtractor={(r, i) => `${r.latitude},${r.longitude},${i}`}
           keyboardShouldPersistTaps="handled"
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          renderItem={({ item }) => {
-            const label = formatLocationResult(item);
-            return (
-              <TouchableOpacity style={styles.resultRow} onPress={() => { onSelect(label); onClose(); }}>
-                <Text style={styles.resultPin}>📍</Text>
-                <Text style={styles.resultText} numberOfLines={2}>{label}</Text>
-              </TouchableOpacity>
-            );
-          }}
+          renderItem={({ item }) => (
+            <TouchableOpacity style={styles.resultRow} onPress={() => { onSelect(item); onClose(); }}>
+              <Text style={styles.resultPin}>📍</Text>
+              <Text style={styles.resultText} numberOfLines={2}>{item.label}</Text>
+            </TouchableOpacity>
+          )}
           ListEmptyComponent={
             query.length >= 2 && !searching ? (
-              <Text style={styles.emptyText}>Sin resultados para "{query}"</Text>
+              <Text style={styles.emptyText}>{t('location.noResults', { query })}</Text>
             ) : null
           }
         />
