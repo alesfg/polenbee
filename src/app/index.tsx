@@ -8,6 +8,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnalyzingView } from '@/components/AnalyzingView';
+import { AreaCard } from '@/components/area/AreaCard';
 import { DateTimeModal } from '@/components/DateTimeModal';
 import { HistoryRow } from '@/components/HistoryRow';
 import { Bee } from '@/components/illustrations/Bee';
@@ -223,6 +224,18 @@ export default function HomeScreen() {
                 <Text style={styles.linkBtnText}>{t('home.fromGallery')}</Text>
               </TouchableOpacity>
             </View>
+
+            {place && (
+              <AreaCard
+                place={place}
+                onPress={() =>
+                  router.push({
+                    pathname: '/zona',
+                    params: { lat: String(place.latitude), lon: String(place.longitude), label: place.label },
+                  })
+                }
+              />
+            )}
 
             {zoneAnalyses.length > 0 && (
               <Animated.View entering={FadeInDown.delay(150)}>

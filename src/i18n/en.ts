@@ -88,6 +88,28 @@ export const en = {
   'history.noLocation': 'No location',
   'history.privacy': 'Privacy policy',
 
+  // Area
+  'area.cardTitle': 'Your area in {month}',
+  'area.cardSubtitle': 'What your bees can forage now',
+  'area.screenTitle': 'Your area',
+  'area.seeMore': 'See more',
+  'area.palette': 'Expected pollen colours',
+  'area.paletteHint': 'Share of each plant among nearby observations this month.',
+  'area.yearTitle': 'Bloom through the year',
+  'area.yearHintFlowering': 'Flowering plants recorded near you each month.',
+  'area.yearHintAll': 'Plant observations near you each month (a proxy for bloom).',
+  'area.plantsTitle': 'Plants in bloom',
+  'area.loading': 'Looking at what blooms near you…',
+  'area.error': "We couldn't load your area. Try again later.",
+  'area.noPlace': 'Choose a location to see what blooms near your bees.',
+  'area.supply.polen': 'Pollen',
+  'area.supply.nectar': 'Nectar',
+  'area.supply.ambos': 'Pollen + nectar',
+  'area.importance.3': 'Key',
+  'area.importance.2': 'Good',
+  'area.importance.1': 'Minor',
+  'area.source': 'Data: iNaturalist observations within 15 km, interpreted by AI.',
+
   // Location modal
   'location.title': 'Where are your bees?',
   'location.cancel': 'Cancel',

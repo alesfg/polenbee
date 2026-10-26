@@ -26,6 +26,30 @@ export interface PollenAnalysis {
   temperature: number | null;
 }
 
+/** A plant bees can forage in an area during a month (polenbee-area-bloom). */
+export interface AreaPlant {
+  nombreCientifico: string;
+  nombreComun: string;
+  colorPolen: string;
+  colorNombre: string;
+  aporte: 'polen' | 'nectar' | 'ambos';
+  importancia: 1 | 2 | 3;
+  floracion: string;
+  nota: string;
+  observations: number;
+  /** Percentage of the area's palette (0–100). */
+  share: number;
+}
+
+export interface AreaBloom {
+  month: number;
+  summary: string;
+  plants: AreaPlant[];
+  /** Plant observations per month, January first. */
+  monthly: number[];
+  curveSource: 'flowering' | 'all';
+}
+
 export interface Place {
   label: string;
   latitude: number;
