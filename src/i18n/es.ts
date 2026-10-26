@@ -90,6 +90,28 @@ export const es: Record<keyof typeof en, string> = {
   'history.noLocation': 'Sin ubicación',
   'history.privacy': 'Política de privacidad',
 
+  // Area
+  'area.cardTitle': 'Tu zona en {month}',
+  'area.cardSubtitle': 'Lo que pueden pecorear tus abejas ahora',
+  'area.screenTitle': 'Tu zona',
+  'area.seeMore': 'Ver más',
+  'area.palette': 'Colores de polen esperados',
+  'area.paletteHint': 'Peso de cada planta entre las observaciones cercanas de este mes.',
+  'area.yearTitle': 'Floración durante el año',
+  'area.yearHintFlowering': 'Plantas en flor registradas cerca de ti cada mes.',
+  'area.yearHintAll': 'Observaciones de plantas cerca de ti cada mes (aproximación a la floración).',
+  'area.plantsTitle': 'Plantas en flor',
+  'area.loading': 'Mirando qué florece cerca de ti…',
+  'area.error': 'No hemos podido cargar tu zona. Inténtalo más tarde.',
+  'area.noPlace': 'Elige una ubicación para ver qué florece cerca de tus abejas.',
+  'area.supply.polen': 'Polen',
+  'area.supply.nectar': 'Néctar',
+  'area.supply.ambos': 'Polen + néctar',
+  'area.importance.3': 'Clave',
+  'area.importance.2': 'Buena',
+  'area.importance.1': 'Secundaria',
+  'area.source': 'Datos: observaciones de iNaturalist en 15 km, interpretadas por IA.',
+
   // Location modal
   'location.title': '¿Dónde están tus abejas?',
   'location.cancel': 'Cancelar',
