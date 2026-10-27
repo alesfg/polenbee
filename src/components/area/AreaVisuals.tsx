@@ -12,6 +12,8 @@ import Animated, {
 
 import { Colors } from '@/constants/theme';
 import { locale, t, TranslationKey } from '@/i18n';
+import { PlantBanner } from '@/components/PlantThumb';
+import { usePlantPhoto } from '@/lib/plantPhoto';
 import { AreaPlant } from '@/types/pollen';
 
 export function monthName(month: number, style: 'long' | 'short' | 'narrow' = 'long') {
@@ -122,30 +124,35 @@ export function BloomCurve({ monthly, selected, onSelect }: { monthly: number[];
 const SUPPLY_ICON = { polen: '🟠', nectar: '💧', ambos: '🟠💧' } as const;
 
 export function AreaPlantCard({ plant, index }: { plant: AreaPlant; index: number }) {
+  const photo = usePlantPhoto(plant.nombreCientifico);
   return (
     <Animated.View entering={FadeInDown.delay(120 + index * 70).duration(350)} style={styles.plantCard}>
-      <View style={styles.plantHeader}>
-        <View style={[styles.plantSwatch, { backgroundColor: plant.colorPolen }]} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.plantName} numberOfLines={1}>{plant.nombreComun}</Text>
-          <Text style={styles.plantScientific} numberOfLines={1}>{plant.nombreCientifico}</Text>
+      <PlantBanner
+        photo={photo}
+        pollenColor={plant.colorPolen}
+        pollenLabel={t('result.pollen', { color: plant.colorNombre })}
+        viewer={{ title: plant.nombreComun, subtitle: plant.nombreCientifico }}
+      />
+      <View style={styles.plantBody}>
+        <View style={styles.plantHeader}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.plantName} numberOfLines={1}>{plant.nombreComun}</Text>
+            <Text style={styles.plantScientific} numberOfLines={1}>{plant.nombreCientifico}</Text>
+          </View>
+          <View style={[styles.importance, styles[`importance${plant.importancia}` as const]]}>
+            <Text style={styles.importanceText}>{t(`area.importance.${plant.importancia}` as TranslationKey)}</Text>
+          </View>
         </View>
-        <View style={[styles.importance, styles[`importance${plant.importancia}` as const]]}>
-          <Text style={styles.importanceText}>{t(`area.importance.${plant.importancia}` as TranslationKey)}</Text>
+        <View style={styles.tags}>
+          <View style={styles.tag}>
+            <Text style={styles.tagText}>{SUPPLY_ICON[plant.aporte]} {t(`area.supply.${plant.aporte}` as TranslationKey)}</Text>
+          </View>
+          <View style={styles.tag}>
+            <Text style={styles.tagText}>🌸 {formatBloom(plant.floracion)}</Text>
+          </View>
         </View>
+        {plant.nota ? <Text style={styles.plantNote}>{plant.nota}</Text> : null}
       </View>
-      <View style={styles.tags}>
-        <View style={styles.tag}>
-          <Text style={styles.tagText}>{SUPPLY_ICON[plant.aporte]} {t(`area.supply.${plant.aporte}` as TranslationKey)}</Text>
-        </View>
-        <View style={styles.tag}>
-          <Text style={styles.tagText}>{t('result.pollen', { color: plant.colorNombre })}</Text>
-        </View>
-        <View style={styles.tag}>
-          <Text style={styles.tagText}>🌸 {formatBloom(plant.floracion)}</Text>
-        </View>
-      </View>
-      {plant.nota ? <Text style={styles.plantNote}>{plant.nota}</Text> : null}
     </Animated.View>
   );
 }
@@ -169,12 +176,12 @@ const styles = StyleSheet.create({
   monthLabel: { fontFamily: 'NunitoSans-Bold', fontSize: 11, color: Colors.textMuted, marginTop: 6 },
   monthLabelSelected: { color: Colors.honeyDark },
 
-  plantCard: { backgroundColor: Colors.card, borderRadius: 18, padding: 14, marginBottom: 10, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  plantCard: { backgroundColor: Colors.card, borderRadius: 20, overflow: 'hidden', marginBottom: 14, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  plantBody: { padding: 14 },
   plantHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  plantSwatch: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: '#00000014' },
-  plantName: { fontFamily: 'NunitoSans-Bold', fontSize: 15, color: Colors.textPrimary },
+  plantName: { fontFamily: 'Nunito-ExtraBold', fontSize: 17, color: Colors.textPrimary },
   plantScientific: { fontFamily: 'NunitoSans', fontStyle: 'italic', fontSize: 12, color: Colors.textMuted, marginTop: 1 },
-  importance: { borderRadius: 100, paddingHorizontal: 10, paddingVertical: 4 },
+  importance: { borderRadius: 100, paddingHorizontal: 10, paddingVertical: 3 },
   importance3: { backgroundColor: Colors.statusFuerteBg },
   importance2: { backgroundColor: Colors.statusMediaBg },
   importance1: { backgroundColor: Colors.honeyFaint },

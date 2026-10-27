@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Linking,
   Modal,
   StyleSheet,
   Text,
@@ -13,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing } from '@/constants/theme';
 import { t } from '@/i18n';
-import { getCurrentPlace, searchPlaces } from '@/lib/location';
+import { getCurrentPlace, locationBlocked, searchPlaces } from '@/lib/location';
 import { Place } from '@/types/pollen';
 
 interface Props {
@@ -49,6 +50,12 @@ export function LocationSearchModal({ visible, onClose, onSelect }: Props) {
   async function handleGPS() {
     setGpsLoading(true);
     setGpsError(false);
+    // Once denied, iOS never shows the prompt again: send the user to Settings instead.
+    if (await locationBlocked()) {
+      setGpsLoading(false);
+      Linking.openSettings();
+      return;
+    }
     const place = await getCurrentPlace();
     setGpsLoading(false);
     if (place) { onSelect(place); onClose(); } else setGpsError(true);
