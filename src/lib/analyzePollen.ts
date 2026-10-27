@@ -35,6 +35,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   rate_limited: t('error.rateLimited'),
   unauthorized: t('error.unauthorized'),
   ai_error: t('error.aiUnavailable'),
+  busy: t('error.busy'),
 };
 
 // Local wall-clock time with offset, e.g. 2026-10-26T18:42:00+01:00, so the AI knows the hour where the photo was taken.

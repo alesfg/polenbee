@@ -23,7 +23,7 @@
       "package": "com.floresstudios.polenbee",
       "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#FBF3E3"
       },
       "predictiveBackGestureEnabled": false,
@@ -55,11 +55,14 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#FBF3E3",
-          "image": "./assets/images/icon.png",
+          "image": "./assets/images/bee-transparent.png",
           "imageWidth": 200
         }
       ],
-      "expo-localization"
+      "expo-localization",
+      "expo-image",
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

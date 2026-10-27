@@ -75,6 +75,7 @@ export const es: Record<keyof typeof en, string> = {
   'error.rateLimited': 'Has llegado al límite de análisis de hoy. Vuelve mañana.',
   'error.unauthorized': 'No se pudo iniciar la sesión. Revisa tu conexión e inténtalo de nuevo.',
   'error.aiUnavailable': 'El analizador no está disponible ahora mismo. Inténtalo en un rato.',
+  'error.busy': 'PolenBee tiene mucha demanda hoy. Inténtalo de nuevo mañana.',
   'error.generic': 'Algo ha fallado al analizar la foto. Inténtalo de nuevo.',
   'error.network': 'No hemos podido conectar. Revisa tu conexión e inténtalo de nuevo.',
   'error.image': 'No se pudo procesar la imagen',

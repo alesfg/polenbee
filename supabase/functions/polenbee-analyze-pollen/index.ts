@@ -8,6 +8,27 @@ const CORS_HEADERS = {
 
 const DAILY_LIMIT = 30;
 const NEARBY_RADIUS_KM = 15;
+// Anonymous users are free to create, so the per-user limit alone doesn't cap spend:
+// also limit per (hashed) IP and globally. Tunable via function secrets.
+const IP_DAILY_LIMIT = Number(Deno.env.get('POLENBEE_ANALYZE_IP_DAILY') ?? 60);
+const GLOBAL_DAILY_LIMIT = Number(Deno.env.get('POLENBEE_ANALYZE_GLOBAL_DAILY') ?? 2000);
+
+async function clientKey(req: Request): Promise<string> {
+  const ip = req.headers.get('cf-connecting-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`polenbee:${ip}`));
+  return [...new Uint8Array(digest)].slice(0, 12).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// deno-lint-ignore no-explicit-any
+async function takeQuota(admin: any, bucket: string, limit: number): Promise<boolean> {
+  const { data, error } = await admin.rpc('polenbee_take_quota', { p_bucket: bucket, p_limit: limit });
+  if (error) {
+    // Don't lock everyone out because of a counter hiccup.
+    console.error('quota error', error);
+    return true;
+  }
+  return data === true;
+}
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -197,6 +218,15 @@ Deno.serve(async (req: Request) => {
       .gte('created_at', since);
     if ((count ?? 0) >= DAILY_LIMIT) {
       return jsonResponse({ success: false, reason: 'rate_limited' }, 429);
+    }
+
+    const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    if (!(await takeQuota(admin, `analyze:ip:${await clientKey(req)}`, IP_DAILY_LIMIT))) {
+      return jsonResponse({ success: false, reason: 'rate_limited' }, 429);
+    }
+    if (!(await takeQuota(admin, 'analyze:global', GLOBAL_DAILY_LIMIT))) {
+      console.error('global daily analysis cap reached');
+      return jsonResponse({ success: false, reason: 'busy' }, 503);
     }
 
     const month = Number(localDateTime.slice(5, 7));
