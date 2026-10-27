@@ -91,6 +91,14 @@ export const es: Record<keyof typeof en, string> = {
   'history.noLocation': 'Sin ubicación',
   'history.privacy': 'Política de privacidad',
 
+  // Delete data
+  'delete.button': 'Borrar mis datos',
+  'delete.title': '¿Borrar todos tus datos?',
+  'delete.message': 'Se borrarán para siempre tu historial de polen y tu cuenta anónima. No se puede deshacer.',
+  'delete.cancel': 'Cancelar',
+  'delete.confirm': 'Borrar',
+  'delete.error': 'No hemos podido borrar tus datos. Revisa tu conexión e inténtalo de nuevo.',
+
   // Area
   'area.cardTitle': 'Tu zona en {month}',
   'area.cardSubtitle': 'Lo que pueden pecorear tus abejas ahora',
