@@ -80,6 +80,17 @@ export default function HistoryScreen() {
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + Spacing.xxl }]} showsVerticalScrollIndicator={false}>
         {loading && <ActivityIndicator color={Colors.honeyPrimary} style={{ marginTop: 40 }} />}
 
+        {analyses.length > 0 && (
+          <TouchableOpacity
+            style={styles.statsBtn}
+            onPress={() => router.push({ pathname: '/estadisticas', params: zone ? { zone } : {} })}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.statsBtnText}>{t('stats.open')}</Text>
+            <Text style={styles.statsBtnSub}>{t('stats.honeyTitle')} →</Text>
+          </TouchableOpacity>
+        )}
+
         {!loading && analyses.length === 0 && (
           <View style={styles.empty}>
             <Bee size={110} />
@@ -149,6 +160,9 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: 'NunitoSans-Bold', fontSize: 13, color: Colors.textMuted2 },
   chipTextSelected: { color: '#fff' },
   content: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, width: '100%', maxWidth: 560, alignSelf: 'center' },
+  statsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FFF8EA', borderWidth: 1.5, borderColor: Colors.honeyLight, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 18 },
+  statsBtnText: { fontFamily: 'Nunito-ExtraBold', fontSize: 15, color: Colors.textPrimary },
+  statsBtnSub: { fontFamily: 'NunitoSans-Bold', fontSize: 13, color: Colors.honeyDark },
   zone: { marginBottom: 22 },
   zoneHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 8 },
   zoneTitle: { flex: 1, fontFamily: 'Nunito-ExtraBold', fontSize: 16, color: Colors.textPrimary },

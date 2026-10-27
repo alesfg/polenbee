@@ -55,3 +55,16 @@ export interface Place {
   latitude: number;
   longitude: number;
 }
+
+/** Estimated honey from the hive's pollen mix (polenbee-honey). */
+export interface HoneyEstimate {
+  tipo: 'monofloral' | 'multifloral';
+  nombre: string;
+  colorMiel: string;
+  colorNombre: string;
+  sabor: string;
+  aroma: string;
+  cristalizacion: string;
+  nota: string;
+  composicion: { nombreCientifico: string; nombreComun: string; porcentaje: number }[];
+}

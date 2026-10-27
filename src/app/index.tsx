@@ -178,9 +178,14 @@ export default function HomeScreen() {
           <Bee size={38} animated={false} />
           <Text style={styles.brandText}>{APP_NAME}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.historyBtn} onPress={() => router.push('/historial')} activeOpacity={0.8}>
-          <Text style={styles.historyBtnText}>{t('home.history')}</Text>
-        </TouchableOpacity>
+        <View style={styles.headerBtns}>
+          <TouchableOpacity style={styles.historyBtn} onPress={() => router.push('/estadisticas')} activeOpacity={0.8} accessibilityLabel={t('stats.title')}>
+            <Text style={styles.historyBtnText}>📊</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.historyBtn} onPress={() => router.push('/historial')} activeOpacity={0.8}>
+            <Text style={styles.historyBtnText}>{t('home.history')}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -329,6 +334,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   brandText: { fontFamily: 'Nunito-Black', fontSize: 22, color: Colors.textPrimary },
+  headerBtns: { flexDirection: 'row', gap: 8 },
   historyBtn: { backgroundColor: Colors.honeyFaint, borderRadius: 100, paddingHorizontal: 14, paddingVertical: 8 },
   historyBtnText: { fontFamily: 'Nunito-ExtraBold', fontSize: 13.5, color: Colors.honeyDark },
   content: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, width: '100%', maxWidth: 560, alignSelf: 'center' },

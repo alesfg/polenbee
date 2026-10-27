@@ -54,6 +54,7 @@ function RootLayout() {
         <Stack.Screen name="index" options={{ animation: onboardingChecked ? 'fade' : 'none' }} />
         <Stack.Screen name="historial" />
         <Stack.Screen name="zona" />
+        <Stack.Screen name="estadisticas" />
         <Stack.Screen name="onboarding" options={{ animation: 'fade', gestureEnabled: false }} />
       </Stack>
     </SafeAreaProvider>
