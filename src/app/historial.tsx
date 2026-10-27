@@ -8,6 +8,7 @@ import { HistoryRow } from '@/components/HistoryRow';
 import { Bee } from '@/components/illustrations/Bee';
 import { ResultView } from '@/components/ResultView';
 import { PRIVACY_POLICY_URL } from '@/constants/config';
+import { confirmDeleteData, deleteMyData } from '@/lib/deleteData';
 import { Colors, Spacing } from '@/constants/theme';
 import { groupByZone, usePollenAnalyses } from '@/hooks/usePollenAnalyses';
 import { t } from '@/i18n';
@@ -38,6 +39,19 @@ export default function HistoryScreen() {
   useEffect(() => {
     if (id) setOpenId(id);
   }, [id]);
+
+  const [deleting, setDeleting] = useState(false);
+  const [deleteFailed, setDeleteFailed] = useState(false);
+
+  async function handleDelete() {
+    if (!(await confirmDeleteData())) return;
+    setDeleting(true);
+    setDeleteFailed(false);
+    const ok = await deleteMyData();
+    setDeleting(false);
+    if (ok) router.replace('/onboarding');
+    else setDeleteFailed(true);
+  }
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -110,6 +124,14 @@ export default function HistoryScreen() {
         <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_POLICY_URL)} style={styles.privacy}>
           <Text style={styles.privacyText}>{t('history.privacy')}</Text>
         </TouchableOpacity>
+        <TouchableOpacity onPress={handleDelete} style={styles.deleteBtn} disabled={deleting}>
+          {deleting ? (
+            <ActivityIndicator color={Colors.statusDebilFg} />
+          ) : (
+            <Text style={styles.deleteText}>{t('delete.button')}</Text>
+          )}
+        </TouchableOpacity>
+        {deleteFailed && <Text style={styles.deleteError}>{t('delete.error')}</Text>}
       </ScrollView>
     </View>
   );
@@ -143,4 +165,7 @@ const styles = StyleSheet.create({
   primaryBtnText: { color: '#fff', fontFamily: 'Nunito-ExtraBold', fontSize: 15 },
   privacy: { alignItems: 'center', paddingVertical: 16 },
   privacyText: { fontFamily: 'NunitoSans', fontSize: 12, color: Colors.textMuted, textDecorationLine: 'underline' },
+  deleteBtn: { alignItems: 'center', paddingVertical: 10 },
+  deleteText: { fontFamily: 'NunitoSans-SemiBold', fontSize: 12.5, color: Colors.statusDebilFg },
+  deleteError: { fontFamily: 'NunitoSans', fontSize: 12, color: Colors.statusDebilFg, textAlign: 'center' },
 });

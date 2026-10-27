@@ -7,11 +7,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/theme';
 import { posthog } from '@/lib/posthog';
+import { withSentry } from '@/lib/sentry';
 import { ONBOARDING_KEY } from './onboarding';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+export default withSentry(RootLayout);
+
+function RootLayout() {
   const [fontsLoaded] = useFonts({
     'Nunito-Bold': require('@expo-google-fonts/nunito/700Bold/Nunito_700Bold.ttf'),
     'Nunito-ExtraBold': require('@expo-google-fonts/nunito/800ExtraBold/Nunito_800ExtraBold.ttf'),

@@ -89,6 +89,14 @@ export const en = {
   'history.noLocation': 'No location',
   'history.privacy': 'Privacy policy',
 
+  // Delete data
+  'delete.button': 'Delete my data',
+  'delete.title': 'Delete all your data?',
+  'delete.message': 'Your pollen history and your anonymous account will be permanently deleted. This cannot be undone.',
+  'delete.cancel': 'Cancel',
+  'delete.confirm': 'Delete',
+  'delete.error': "We couldn't delete your data. Check your connection and try again.",
+
   // Area
   'area.cardTitle': 'Your area in {month}',
   'area.cardSubtitle': 'What your bees can forage now',
