@@ -4,28 +4,35 @@ import { Platform } from 'react-native';
 import { language } from '@/i18n';
 import { Place } from '@/types/pollen';
 
-interface NominatimResult {
-  place_id: number;
-  lat: string;
-  lon: string;
-  name: string;
-  address: { city?: string; town?: string; village?: string; municipality?: string; county?: string; state?: string; country?: string };
+// Photon (komoot) is built for search-as-you-type, unlike Nominatim whose usage policy forbids autocomplete.
+// It only localises to a few languages; "default" returns local names (Spanish names in Spain).
+const PHOTON_URL = 'https://photon.komoot.io';
+const PHOTON_LANG = language === 'en' ? 'en' : 'default';
+const PHOTON_LAYERS = ['city', 'locality', 'district', 'county'].map((l) => `&layer=${l}`).join('');
+const PHOTON_HEADERS = { 'User-Agent': 'PolenBee/2.0 (com.floresstudios.polenbee)' };
+
+interface PhotonFeature {
+  geometry: { coordinates: [number, number] };
+  properties: { name?: string; city?: string; county?: string; state?: string; country?: string };
 }
 
-const NOMINATIM_HEADERS = { 'User-Agent': 'PolenBee/2.0', 'Accept-Language': language };
-
-function nominatimLabel(r: NominatimResult): string {
-  const a = r.address ?? {};
-  return [a.city ?? a.town ?? a.village ?? a.municipality ?? r.name, a.state, a.country].filter(Boolean).join(', ');
+function photonPlace(f: PhotonFeature): Place {
+  const p = f.properties;
+  const label = [p.name ?? p.city ?? p.county, p.state, p.country]
+    .filter((part, i, all) => part && all.indexOf(part) === i)
+    .join(', ');
+  return { label, latitude: f.geometry.coordinates[1], longitude: f.geometry.coordinates[0] };
 }
 
 export async function searchPlaces(query: string): Promise<Place[]> {
-  if (query.trim().length < 2) return [];
+  if (query.trim().length < 3) return [];
   try {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=1`;
-    const res = await fetch(url, { headers: NOMINATIM_HEADERS });
-    const json: NominatimResult[] = await res.json();
-    return json.map((r) => ({ label: nominatimLabel(r), latitude: Number(r.lat), longitude: Number(r.lon) }));
+    const url = `${PHOTON_URL}/api/?q=${encodeURIComponent(query)}&limit=6&lang=${PHOTON_LANG}${PHOTON_LAYERS}`;
+    const res = await fetch(url, { headers: PHOTON_HEADERS });
+    const json: { features?: PhotonFeature[] } = await res.json();
+    // A town and its municipality often share a label; keep the first.
+    const places = (json.features ?? []).map(photonPlace).filter((p) => p.label);
+    return places.filter((p, i) => places.findIndex((q) => q.label === p.label) === i);
   } catch {
     return [];
   }
@@ -38,13 +45,14 @@ export async function reverseGeocode(latitude: number, longitude: number): Promi
       const label = [p?.city ?? p?.subregion, p?.region, p?.country].filter(Boolean).join(', ');
       if (label) return label;
     } catch {
-      // fall through to Nominatim
+      // fall through to Photon
     }
   }
   try {
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=10&addressdetails=1`;
-    const res = await fetch(url, { headers: NOMINATIM_HEADERS });
-    const label = nominatimLabel(await res.json());
+    const url = `${PHOTON_URL}/reverse?lat=${latitude}&lon=${longitude}&limit=1&lang=${PHOTON_LANG}${PHOTON_LAYERS}`;
+    const res = await fetch(url, { headers: PHOTON_HEADERS });
+    const json: { features?: PhotonFeature[] } = await res.json();
+    const label = json.features?.[0] ? photonPlace(json.features[0]).label : '';
     if (label) return label;
   } catch {
     // ignore

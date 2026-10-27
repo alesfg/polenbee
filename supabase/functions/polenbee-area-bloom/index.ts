@@ -13,6 +13,26 @@ const RADIUS_KM = 15;
 const CACHE_DAYS = 14;
 // Below this many flowering-annotated observations a year, the curve uses all plant observations instead.
 const MIN_FLOWERING_FOR_CURVE = 150;
+// Only cache misses call the AI; cap those per (hashed) IP and globally. Tunable via function secrets.
+const IP_DAILY_LIMIT = Number(Deno.env.get('POLENBEE_AREA_IP_DAILY') ?? 40);
+const GLOBAL_DAILY_LIMIT = Number(Deno.env.get('POLENBEE_AREA_GLOBAL_DAILY') ?? 500);
+
+async function clientKey(req: Request): Promise<string> {
+  const ip = req.headers.get('cf-connecting-ip') ?? req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown';
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`polenbee:${ip}`));
+  return [...new Uint8Array(digest)].slice(0, 12).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+// deno-lint-ignore no-explicit-any
+async function takeQuota(admin: any, bucket: string, limit: number): Promise<boolean> {
+  const { data, error } = await admin.rpc('polenbee_take_quota', { p_bucket: bucket, p_limit: limit });
+  if (error) {
+    // Don't lock everyone out because of a counter hiccup.
+    console.error('quota error', error);
+    return true;
+  }
+  return data === true;
+}
 
 type Language = 'en' | 'es';
 
@@ -144,6 +164,14 @@ Deno.serve(async (req: Request) => {
       .gte('created_at', freshSince)
       .maybeSingle();
     if (cached?.data) return jsonResponse({ success: true, area: cached.data, cached: true });
+
+    if (!(await takeQuota(admin, `area:ip:${await clientKey(req)}`, IP_DAILY_LIMIT))) {
+      return jsonResponse({ success: false, reason: 'rate_limited' }, 429);
+    }
+    if (!(await takeQuota(admin, 'area:global', GLOBAL_DAILY_LIMIT))) {
+      console.error('global daily area cap reached');
+      return jsonResponse({ success: false, reason: 'busy' }, 503);
+    }
 
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openaiApiKey) {

@@ -73,6 +73,7 @@ export const en = {
   'error.rateLimited': "You've reached today's analysis limit. Come back tomorrow.",
   'error.unauthorized': "We couldn't start your session. Check your connection and try again.",
   'error.aiUnavailable': 'The analyser is not available right now. Try again in a while.',
+  'error.busy': 'PollenBee is very busy today. Please try again tomorrow.',
   'error.generic': 'Something went wrong analysing the photo. Please try again.',
   'error.network': "We couldn't connect. Check your connection and try again.",
   'error.image': "We couldn't process the image",
