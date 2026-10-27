@@ -4,10 +4,10 @@ import { StyleSheet, View } from 'react-native';
 
 import { Colors } from '@/constants/theme';
 
-// Realistic bees with pollen loads of different colours (AI-generated artwork).
+// Realistic bees with pollen loads of different colours (AI-generated artwork, 1264×848).
 const PHOTOS = [
-  { source: require('../../assets/images/bee-photo-1.png'), pollen: ['#E8742C'] },
-  { source: require('../../assets/images/bee-photo-2.png'), pollen: ['#4B4FA0', '#B33A2E'] },
+  { source: require('../../assets/images/bee-photo-1.jpg'), pollen: ['#E8742C'] },
+  { source: require('../../assets/images/bee-photo-2.jpg'), pollen: ['#4B4FA0', '#B33A2E'] },
 ];
 
 /** Cross-fades between the bee photos, with the pollen colours of the current one as dots. */
