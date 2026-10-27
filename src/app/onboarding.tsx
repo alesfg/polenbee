@@ -48,6 +48,11 @@ const SLIDES = [
   },
 ] as const;
 
+// Precomputed outside the worklet: callbacks inside it get hoisted by the React
+// Compiler into plain JS functions, which crash when called on the UI thread.
+const SLIDE_INPUTS = SLIDES.map((_, i) => i);
+const SLIDE_BLOBS = SLIDES.map((s) => s.blob);
+
 function Dot({ index, scrollX, width }: { index: number; scrollX: SharedValue<number>; width: number }) {
   const style = useAnimatedStyle(() => {
     const p = scrollX.value / width;
@@ -104,11 +109,7 @@ export default function OnboardingScreen() {
   });
 
   const blobStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(
-      scrollX.value / width,
-      SLIDES.map((_, i) => i),
-      SLIDES.map((s) => s.blob)
-    ),
+    backgroundColor: interpolateColor(scrollX.value / width, SLIDE_INPUTS, SLIDE_BLOBS),
     transform: [{ rotate: `${(scrollX.value / width) * 40}deg` }],
   }));
 
