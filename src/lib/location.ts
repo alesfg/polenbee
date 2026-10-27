@@ -69,6 +69,17 @@ export async function hasLocationPermission(): Promise<boolean> {
   }
 }
 
+/** True when the user denied location for good, so only the Settings app can turn it back on. */
+export async function locationBlocked(): Promise<boolean> {
+  if (Platform.OS === 'web') return false;
+  try {
+    const { status, canAskAgain } = await Location.getForegroundPermissionsAsync();
+    return status !== 'granted' && !canAskAgain;
+  } catch {
+    return false;
+  }
+}
+
 export async function requestLocationPermission(): Promise<boolean> {
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();

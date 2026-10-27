@@ -12,6 +12,8 @@ import Animated, {
 
 import { Colors } from '@/constants/theme';
 import { locale, t, TranslationKey } from '@/i18n';
+import { PlantThumb } from '@/components/PlantThumb';
+import { usePlantPhoto } from '@/lib/plantPhoto';
 import { AreaPlant } from '@/types/pollen';
 
 export function monthName(month: number, style: 'long' | 'short' | 'narrow' = 'long') {
@@ -122,16 +124,19 @@ export function BloomCurve({ monthly, selected, onSelect }: { monthly: number[];
 const SUPPLY_ICON = { polen: '🟠', nectar: '💧', ambos: '🟠💧' } as const;
 
 export function AreaPlantCard({ plant, index }: { plant: AreaPlant; index: number }) {
+  const photo = usePlantPhoto(plant.nombreCientifico);
   return (
     <Animated.View entering={FadeInDown.delay(120 + index * 70).duration(350)} style={styles.plantCard}>
       <View style={styles.plantHeader}>
-        <View style={[styles.plantSwatch, { backgroundColor: plant.colorPolen }]} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.plantName} numberOfLines={1}>{plant.nombreComun}</Text>
-          <Text style={styles.plantScientific} numberOfLines={1}>{plant.nombreCientifico}</Text>
-        </View>
-        <View style={[styles.importance, styles[`importance${plant.importancia}` as const]]}>
-          <Text style={styles.importanceText}>{t(`area.importance.${plant.importancia}` as TranslationKey)}</Text>
+        <PlantThumb photo={photo} pollenColor={plant.colorPolen} size={68} />
+        <View style={{ flex: 1, gap: 6 }}>
+          <View>
+            <Text style={styles.plantName} numberOfLines={1}>{plant.nombreComun}</Text>
+            <Text style={styles.plantScientific} numberOfLines={1}>{plant.nombreCientifico}</Text>
+          </View>
+          <View style={[styles.importance, styles[`importance${plant.importancia}` as const]]}>
+            <Text style={styles.importanceText}>{t(`area.importance.${plant.importancia}` as TranslationKey)}</Text>
+          </View>
         </View>
       </View>
       <View style={styles.tags}>
@@ -146,6 +151,7 @@ export function AreaPlantCard({ plant, index }: { plant: AreaPlant; index: numbe
         </View>
       </View>
       {plant.nota ? <Text style={styles.plantNote}>{plant.nota}</Text> : null}
+      {photo ? <Text style={styles.photoCredit} numberOfLines={1}>{photo.attribution}</Text> : null}
     </Animated.View>
   );
 }
@@ -170,11 +176,10 @@ const styles = StyleSheet.create({
   monthLabelSelected: { color: Colors.honeyDark },
 
   plantCard: { backgroundColor: Colors.card, borderRadius: 18, padding: 14, marginBottom: 10, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
-  plantHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  plantSwatch: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: '#00000014' },
+  plantHeader: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   plantName: { fontFamily: 'NunitoSans-Bold', fontSize: 15, color: Colors.textPrimary },
   plantScientific: { fontFamily: 'NunitoSans', fontStyle: 'italic', fontSize: 12, color: Colors.textMuted, marginTop: 1 },
-  importance: { borderRadius: 100, paddingHorizontal: 10, paddingVertical: 4 },
+  importance: { alignSelf: 'flex-start', borderRadius: 100, paddingHorizontal: 10, paddingVertical: 3 },
   importance3: { backgroundColor: Colors.statusFuerteBg },
   importance2: { backgroundColor: Colors.statusMediaBg },
   importance1: { backgroundColor: Colors.honeyFaint },
@@ -183,4 +188,5 @@ const styles = StyleSheet.create({
   tag: { backgroundColor: Colors.bg, borderRadius: 100, paddingHorizontal: 9, paddingVertical: 4 },
   tagText: { fontFamily: 'NunitoSans-SemiBold', fontSize: 11.5, color: Colors.textMuted2 },
   plantNote: { fontFamily: 'NunitoSans', fontSize: 13, color: Colors.textMuted2, lineHeight: 18, marginTop: 8 },
+  photoCredit: { fontFamily: 'NunitoSans', fontSize: 10, color: Colors.textMuted, marginTop: 8, opacity: 0.8 },
 });

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Linking,
   Modal,
   StyleSheet,
   Text,
@@ -13,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Spacing } from '@/constants/theme';
 import { t } from '@/i18n';
-import { getCurrentPlace, searchPlaces } from '@/lib/location';
+import { getCurrentPlace, locationBlocked, searchPlaces } from '@/lib/location';
 import { Place } from '@/types/pollen';
 
 interface Props {

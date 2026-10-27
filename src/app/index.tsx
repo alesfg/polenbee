@@ -19,7 +19,7 @@ import { Colors, Spacing } from '@/constants/theme';
 import { usePollenAnalyses } from '@/hooks/usePollenAnalyses';
 import { APP_NAME, locale, t } from '@/i18n';
 import { analyzePollen } from '@/lib/analyzePollen';
-import { getCurrentPlace, hasLocationPermission } from '@/lib/location';
+import { getCurrentPlace } from '@/lib/location';
 import { exifDate, exifPlace } from '@/lib/photoMeta';
 import { posthog } from '@/lib/posthog';
 import { PollenAnalysis, Place } from '@/types/pollen';
@@ -89,10 +89,9 @@ export default function HomeScreen() {
     (async () => {
       const saved = await AsyncStorage.getItem(LAST_PLACE_KEY);
       if (saved) setPlace(JSON.parse(saved));
-      if (await hasLocationPermission()) {
-        const current = await getCurrentPlace();
-        if (current) rememberPlace(current);
-      }
+      // Also asks for permission here in case it was never answered during onboarding.
+      const current = await getCurrentPlace();
+      if (current) rememberPlace(current);
       setLocating(false);
     })();
   }, []);
