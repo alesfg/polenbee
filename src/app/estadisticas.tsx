@@ -229,7 +229,7 @@ function MixRow({ plant }: { plant: PlantShare }) {
   const photo = usePlantPhoto(plant.nombreCientifico);
   return (
     <View style={styles.mixRow}>
-      <PlantThumb photo={photo} pollenColor={plant.colorPolen} size={40} />
+      <PlantThumb photo={photo} pollenColor={plant.colorPolen} size={60} viewer={{ title: plant.nombreComun, subtitle: plant.nombreCientifico }} />
       <View style={{ flex: 1 }}>
         <Text style={styles.mixName} numberOfLines={1}>{plant.nombreComun}</Text>
         {plant.topCount > 0 && <Text style={styles.mixMeta}>{t('stats.topTimes', { count: plant.topCount })}</Text>}

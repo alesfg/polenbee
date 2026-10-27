@@ -9,10 +9,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AnalyzingView } from '@/components/AnalyzingView';
 import { AreaCard } from '@/components/area/AreaCard';
+import { BeePhotos } from '@/components/BeePhotos';
 import { DateTimeModal } from '@/components/DateTimeModal';
 import { HistoryRow } from '@/components/HistoryRow';
 import { Bee } from '@/components/illustrations/Bee';
-import { Flower } from '@/components/illustrations/Flower';
 import { LocationSearchModal } from '@/components/LocationSearchModal';
 import { ResultView } from '@/components/ResultView';
 import { Colors, Spacing } from '@/constants/theme';
@@ -212,11 +212,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             <View style={styles.hero}>
-              <View style={styles.heroFlowers}>
-                <Flower size={30} petal="#F4A7B9" />
-                <Flower size={22} petal="#B9A5E8" />
-              </View>
-              <Bee size={150} pollenColor="#E8742C" />
+              <BeePhotos height={210} />
               <Text style={styles.heroTitle}>{t('home.heroTitle')}</Text>
               <Text style={styles.heroText}>
                 {t('home.heroText')}
@@ -345,10 +341,9 @@ const styles = StyleSheet.create({
   placeMeta: { fontFamily: 'NunitoSans', fontSize: 12, color: Colors.textMuted, marginTop: 1 },
   placeChange: { fontFamily: 'NunitoSans-Bold', fontSize: 13, color: Colors.honeyDark },
 
-  hero: { backgroundColor: Colors.honeySoft, borderRadius: 28, paddingHorizontal: 22, paddingTop: 18, paddingBottom: 14, alignItems: 'center', marginTop: 4, marginBottom: 24, overflow: 'hidden' },
-  heroFlowers: { position: 'absolute', top: 18, right: 18, flexDirection: 'row', alignItems: 'flex-end', gap: 4 },
-  heroTitle: { fontFamily: 'Nunito-Black', fontSize: 22, color: Colors.textPrimary, textAlign: 'center', marginTop: 4 },
-  heroText: { fontFamily: 'NunitoSans', fontSize: 14.5, color: Colors.textMuted2, textAlign: 'center', lineHeight: 21, marginTop: 8, marginBottom: 18 },
+  hero: { backgroundColor: Colors.honeySoft, borderRadius: 28, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 14, alignItems: 'center', marginTop: 4, marginBottom: 24, overflow: 'hidden' },
+  heroTitle: { fontFamily: 'Nunito-Black', fontSize: 22, color: Colors.textPrimary, textAlign: 'center', marginTop: 16, paddingHorizontal: 10 },
+  heroText: { fontFamily: 'NunitoSans', fontSize: 14.5, color: Colors.textMuted2, textAlign: 'center', lineHeight: 21, marginTop: 8, marginBottom: 18, paddingHorizontal: 10 },
   primaryBtn: { alignSelf: 'stretch', backgroundColor: Colors.greenDark, borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
   primaryBtnText: { color: '#fff', fontFamily: 'Nunito-ExtraBold', fontSize: 16.5 },
   linkBtn: { paddingVertical: 12, alignItems: 'center' },

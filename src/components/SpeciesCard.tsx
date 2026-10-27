@@ -4,7 +4,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTimi
 
 import { Colors } from '@/constants/theme';
 import { t } from '@/i18n';
-import { PlantThumb } from '@/components/PlantThumb';
+import { PlantBanner, PlantThumb } from '@/components/PlantThumb';
 import { usePlantPhoto } from '@/lib/plantPhoto';
 import { PollenSpecies } from '@/types/pollen';
 
@@ -16,34 +16,42 @@ export function SpeciesCard({ species, index, top }: { species: PollenSpecies; i
   }, [species.probabilidad]);
   const barStyle = useAnimatedStyle(() => ({ width: `${fill.value}%` }));
 
+  const viewer = { title: species.nombreComun, subtitle: species.nombreCientifico };
   return (
     <View style={[styles.card, top && styles.cardTop]}>
-      <View style={styles.header}>
-        <PlantThumb photo={photo} pollenColor={species.colorPolen} size={top ? 64 : 52} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{species.nombreComun}</Text>
-          <Text style={styles.scientific}>{species.nombreCientifico}</Text>
+      {top ? (
+        <PlantBanner photo={photo} pollenColor={species.colorPolen} pollenLabel={t('result.expectedPollen', { color: species.colorNombre })} height={190} viewer={viewer} />
+      ) : null}
+      <View style={styles.body}>
+        <View style={styles.header}>
+          {top ? null : <PlantThumb photo={photo} pollenColor={species.colorPolen} size={72} viewer={viewer} />}
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.name, top && styles.nameTop]}>{species.nombreComun}</Text>
+            <Text style={styles.scientific}>{species.nombreCientifico}</Text>
+          </View>
+          <Text style={[styles.prob, top && styles.probTop]}>{species.probabilidad}%</Text>
         </View>
-        <Text style={[styles.prob, top && styles.probTop]}>{species.probabilidad}%</Text>
+        <View style={styles.track}>
+          <Animated.View style={[styles.fill, { backgroundColor: species.colorPolen }, barStyle]} />
+        </View>
+        {species.motivo ? <Text style={styles.reason}>{species.motivo}</Text> : null}
+        <View style={styles.footer}>
+          <Text style={styles.meta}>{t('result.pollen', { color: species.colorNombre })}</Text>
+          <Text style={styles.meta}>🌸 {species.floracion}</Text>
+        </View>
+        {photo && !top ? <Text style={styles.photoCredit} numberOfLines={1}>{photo.attribution}</Text> : null}
       </View>
-      <View style={styles.track}>
-        <Animated.View style={[styles.fill, { backgroundColor: species.colorPolen }, barStyle]} />
-      </View>
-      {species.motivo ? <Text style={styles.reason}>{species.motivo}</Text> : null}
-      <View style={styles.footer}>
-        <Text style={styles.meta}>{t('result.pollen', { color: species.colorNombre })}</Text>
-        <Text style={styles.meta}>🌸 {species.floracion}</Text>
-      </View>
-      {photo ? <Text style={styles.photoCredit} numberOfLines={1}>{photo.attribution}</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: Colors.card, borderRadius: 18, padding: 16, marginBottom: 10, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
+  card: { backgroundColor: Colors.card, borderRadius: 20, overflow: 'hidden', marginBottom: 12, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 2 },
   cardTop: { borderWidth: 2, borderColor: Colors.honeyLight },
+  body: { padding: 16 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
   name: { fontFamily: 'NunitoSans-Bold', fontSize: 15.5, color: Colors.textPrimary },
+  nameTop: { fontFamily: 'Nunito-Black', fontSize: 20 },
   scientific: { fontSize: 12, color: Colors.textMuted, fontFamily: 'NunitoSans', fontStyle: 'italic', marginTop: 2 },
   prob: { fontFamily: 'Nunito-Black', fontSize: 20, color: Colors.textMuted2 },
   probTop: { fontSize: 26, color: Colors.honeyDark },
