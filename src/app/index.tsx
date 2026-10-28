@@ -12,7 +12,7 @@ import { AreaCard } from '@/components/area/AreaCard';
 import { BeePhotos } from '@/components/BeePhotos';
 import { DateTimeModal } from '@/components/DateTimeModal';
 import { HistoryRow } from '@/components/HistoryRow';
-import { Bee } from '@/components/illustrations/Bee';
+import { BrandBee } from '@/components/illustrations/BrandBee';
 import { BeeProfile } from '@/components/illustrations/BeeProfile';
 import { LocationSearchModal } from '@/components/LocationSearchModal';
 import { ResultView } from '@/components/ResultView';
@@ -177,7 +177,7 @@ export default function HomeScreen() {
           disabled={view.kind === 'analyzing'}
           activeOpacity={0.8}
         >
-          <Bee size={38} animated={false} />
+          <BrandBee size={38} animated={false} />
           <Text style={styles.brandText}>{APP_NAME}</Text>
         </TouchableOpacity>
         <View style={styles.headerBtns}>
@@ -318,7 +318,7 @@ export default function HomeScreen() {
 
         {view.kind === 'error' && (
           <Animated.View entering={FadeInDown.duration(300)} style={styles.errorCard}>
-            <Bee size={90} pollenColor="#D9CBB0" animated={false} />
+            <BrandBee size={90} animated={false} />
             <Text style={styles.errorTitle}>{t('error.title')}</Text>
             <Text style={styles.errorText}>{view.message}</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={() => analyze(view.draft)} activeOpacity={0.85}>

@@ -5,7 +5,7 @@ import Animated, { FadeInDown, LinearTransition } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HistoryRow } from '@/components/HistoryRow';
-import { Bee } from '@/components/illustrations/Bee';
+import { BrandBee } from '@/components/illustrations/BrandBee';
 import { ResultView } from '@/components/ResultView';
 import { PRIVACY_POLICY_URL } from '@/constants/config';
 import { confirmDeleteData, deleteMyData } from '@/lib/deleteData';
@@ -93,7 +93,7 @@ export default function HistoryScreen() {
 
         {!loading && analyses.length === 0 && (
           <View style={styles.empty}>
-            <Bee size={110} />
+            <BrandBee size={110} />
             <Text style={styles.emptyTitle}>{t('history.emptyTitle')}</Text>
             <Text style={styles.emptyText}>{t('history.emptyText')}</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={() => router.replace('/')}>

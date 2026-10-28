@@ -11,7 +11,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { Bee } from '@/components/illustrations/Bee';
+import { BrandBee } from '@/components/illustrations/BrandBee';
 import { Colors } from '@/constants/theme';
 import { t } from '@/i18n';
 
@@ -63,7 +63,7 @@ export function AnalyzingView({ imageUri, placeLabel }: { imageUri: string; plac
           <Animated.View style={[styles.scanLine, scanStyle]} />
         </View>
         <Animated.View style={[styles.bee, beeStyle]}>
-          <Bee size={64} />
+          <BrandBee size={64} />
         </Animated.View>
       </View>
 
