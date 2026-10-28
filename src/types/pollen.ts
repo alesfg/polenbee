@@ -24,6 +24,16 @@ export interface PollenAnalysis {
   pollenColorName: string | null;
   summary: string | null;
   temperature: number | null;
+  bee: BeeId | null;
+}
+
+/** What the AI saw in the photo: kind of bee and, for honey bees, caste and likely race. */
+export interface BeeId {
+  tipo: string;
+  casta: 'obrera' | 'reina' | 'zangano' | 'desconocida';
+  raza: string;
+  confianzaRaza: 'alta' | 'media' | 'baja';
+  rasgos: string;
 }
 
 /** A plant bees can forage in an area during a month (polenbee-area-bloom). */

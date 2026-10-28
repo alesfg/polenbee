@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { BeeIdCard } from '@/components/bees/BeeIdCard';
 import { formatAnalysisDate } from '@/components/HistoryRow';
 import { SpeciesCard } from '@/components/SpeciesCard';
 import { Colors } from '@/constants/theme';
@@ -57,6 +58,12 @@ export function ResultView({ analysis, imageUri, onNew, onHistory }: Props) {
         <Animated.Text entering={FadeInDown.delay(100).duration(400)} style={styles.summary}>
           {analysis.summary}
         </Animated.Text>
+      ) : null}
+
+      {analysis.bee ? (
+        <Animated.View entering={FadeInDown.delay(130).duration(400)}>
+          <BeeIdCard bee={analysis.bee} />
+        </Animated.View>
       ) : null}
 
       {analysis.species.map((sp, i) => (

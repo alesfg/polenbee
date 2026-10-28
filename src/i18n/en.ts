@@ -117,6 +117,41 @@ export const en = {
   'stats.emptyTitle': 'No stats yet',
   'stats.emptyText': 'Analyse a few bee photos to see your pollen mix and the honey your hive would make.',
 
+  // Bees of your area
+  'area.tabPlants': '🌸 Plants',
+  'area.tabBees': '🐝 Bees',
+  'bees.cardTitle': 'Bees of your area',
+  'bees.cardText': 'Local honey bee races and wild bees',
+  'bees.racesTitle': 'Honey bee races',
+  'bees.racesHint': 'The native race of your region and the ones beekeepers there often keep.',
+  'bees.racesHintIntroduced': 'Honey bees are not native here: these are the races beekeepers usually keep.',
+  'bees.native': 'Native here',
+  'bees.kept': 'Often kept',
+  'bees.wildTitle': 'Bees seen around you',
+  'bees.wildHint': '{count} bee species recorded within 25 km. The most observed:',
+  'bees.wildHintLoading': 'Looking for bees recorded near you…',
+  'bees.observations': '{count} sightings',
+  'bees.source': 'Data and photos: iNaturalist observations within 25 km.',
+
+  // Bee ID in results
+  'beeId.title': 'Your bee',
+  'beeId.unknown': 'Unidentified bee',
+  'beeId.notABee': "Doesn't look like a bee",
+  'beeId.notABeeHint': 'Hoverflies and wasps often look like bees. The pollen estimate still uses your area and date.',
+  'beeId.raceUnknown': "The race can't be told from this photo. A sharp side view of the abdomen helps.",
+  'beeId.caste.obrera': 'Worker',
+  'beeId.caste.reina': 'Queen',
+  'beeId.caste.zangano': 'Drone',
+  'beeId.confidence.alta': 'Likely race',
+  'beeId.confidence.media': 'Possible race',
+  'beeId.confidence.baja': 'Rough guess',
+  'beeId.disclaimer': 'Races are hard to tell apart from a photo; a reliable ID needs wing measurements or DNA.',
+
+  // Learn
+  'learn.title': 'Bee world',
+  'learn.cardText': 'How the hive works, the dance, honey and more',
+  'learn.next': 'Next chapter',
+
   // Delete data
   'delete.button': 'Delete my data',
   'delete.title': 'Delete all your data?',

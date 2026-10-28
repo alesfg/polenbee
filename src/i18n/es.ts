@@ -119,6 +119,41 @@ export const es: Record<keyof typeof en, string> = {
   'stats.emptyTitle': 'Aún no hay estadísticas',
   'stats.emptyText': 'Analiza algunas fotos de abejas para ver tu mezcla de polen y la miel que daría tu colmenar.',
 
+  // Bees of your area
+  'area.tabPlants': '🌸 Plantas',
+  'area.tabBees': '🐝 Abejas',
+  'bees.cardTitle': 'Abejas de tu zona',
+  'bees.cardText': 'Razas de abeja melífera y abejas silvestres',
+  'bees.racesTitle': 'Razas de abeja melífera',
+  'bees.racesHint': 'La raza autóctona de tu región y las que más crían allí los apicultores.',
+  'bees.racesHintIntroduced': 'Aquí la abeja melífera no es autóctona: estas son las razas que suelen criar los apicultores.',
+  'bees.native': 'Autóctona',
+  'bees.kept': 'Frecuente en colmenares',
+  'bees.wildTitle': 'Abejas vistas cerca de ti',
+  'bees.wildHint': '{count} especies de abejas registradas en 25 km. Las más observadas:',
+  'bees.wildHintLoading': 'Buscando abejas registradas cerca de ti…',
+  'bees.observations': '{count} observaciones',
+  'bees.source': 'Datos y fotos: observaciones de iNaturalist en 25 km.',
+
+  // Bee ID in results
+  'beeId.title': 'Tu abeja',
+  'beeId.unknown': 'Abeja sin identificar',
+  'beeId.notABee': 'No parece una abeja',
+  'beeId.notABeeHint': 'Los sírfidos y las avispas se parecen mucho. La estimación de polen se hace igual con tu zona y la fecha.',
+  'beeId.raceUnknown': 'Con esta foto no se distingue la raza. Ayuda una foto nítida del abdomen de lado.',
+  'beeId.caste.obrera': 'Obrera',
+  'beeId.caste.reina': 'Reina',
+  'beeId.caste.zangano': 'Zángano',
+  'beeId.confidence.alta': 'Raza probable',
+  'beeId.confidence.media': 'Raza posible',
+  'beeId.confidence.baja': 'Estimación aproximada',
+  'beeId.disclaimer': 'Las razas se distinguen mal por foto; para asegurarlo hace falta medir las alas o un análisis de ADN.',
+
+  // Learn
+  'learn.title': 'Mundo abeja',
+  'learn.cardText': 'Cómo funciona la colmena, la danza, la miel y más',
+  'learn.next': 'Siguiente capítulo',
+
   // Delete data
   'delete.button': 'Borrar mis datos',
   'delete.title': '¿Borrar todos tus datos?',
