@@ -149,8 +149,12 @@ export const en = {
 
   // Learn
   'learn.title': 'Bee world',
-  'learn.cardText': 'How the hive works, the dance, honey and more',
-  'learn.next': 'Next chapter',
+  'learn.cardText': '16 chapters: the hive, the dance, anatomy, a quiz…',
+  'learn.next': 'Next',
+  'learn.prev': 'Previous',
+  'learn.all': 'All chapters',
+  'learn.heroTitle': 'Everything about bees, step by step',
+  'learn.progress': 'You have seen {seen} of {total} chapters',
 
   // Delete data
   'delete.button': 'Delete my data',

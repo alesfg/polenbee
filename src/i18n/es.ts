@@ -151,8 +151,12 @@ export const es: Record<keyof typeof en, string> = {
 
   // Learn
   'learn.title': 'Mundo abeja',
-  'learn.cardText': 'Cómo funciona la colmena, la danza, la miel y más',
-  'learn.next': 'Siguiente capítulo',
+  'learn.cardText': '16 capítulos: la colmena, la danza, anatomía, un quiz…',
+  'learn.next': 'Siguiente',
+  'learn.prev': 'Anterior',
+  'learn.all': 'Todos los capítulos',
+  'learn.heroTitle': 'Todo sobre las abejas, paso a paso',
+  'learn.progress': 'Has visto {seen} de {total} capítulos',
 
   // Delete data
   'delete.button': 'Borrar mis datos',
