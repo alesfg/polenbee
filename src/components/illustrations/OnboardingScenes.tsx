@@ -16,7 +16,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Colors } from '@/constants/theme';
 import { locale, t } from '@/i18n';
-import { Bee } from './Bee';
+import { BrandBee } from '@/components/illustrations/BrandBee';
 import { Flower } from './Flower';
 
 export const SCENE_SIZE = 280;
@@ -94,7 +94,7 @@ export function WelcomeScene({ active }: SceneProps) {
         <FloatingPollen key={x} x={x} delay={i * 600} active={active} />
       ))}
       <Animated.View style={[styles.welcomeBee, flyStyle]}>
-        <Bee size={130} animated={active} />
+        <BrandBee size={130} animated={active} />
       </Animated.View>
     </View>
   );
@@ -132,7 +132,7 @@ export function PhotoScene({ active }: SceneProps) {
           <View style={[styles.corner, { bottom: 10, left: 10, borderBottomWidth: 3, borderLeftWidth: 3 }]} />
           <View style={[styles.corner, { bottom: 10, right: 10, borderBottomWidth: 3, borderRightWidth: 3 }]} />
           <Flower size={34} petal="#F4A7B9" />
-          <Bee size={120} pollenColor="#E8742C" animated={active} />
+          <BrandBee size={120} animated={active} />
           {/* focus ring locks on the pollen load */}
           <Animated.View style={[styles.focusRing, focusStyle]} />
           <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.flash, flashStyle]} />
@@ -261,7 +261,7 @@ export function OddsScene({ active }: SceneProps) {
     <View style={styles.scene}>
       <Animated.View style={[styles.oddsCard, cardStyle]}>
         <View style={styles.oddsTop}>
-          <Bee size={54} pollenColor="#E9B949" animated={active} />
+          <BrandBee size={54} animated={active} />
           <View style={{ flex: 1 }}>
             <Text style={styles.oddsTitle}>{t('onboarding.odds.cardTitle')}</Text>
             <Text style={styles.oddsSub}>{t('onboarding.odds.cardSubtitle')}</Text>

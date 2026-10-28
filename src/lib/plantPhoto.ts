@@ -19,7 +19,7 @@ const MAX_CONCURRENT = 3;
 let active = 0;
 const waiting: (() => void)[] = [];
 
-async function getJson(url: string) {
+export async function getJson(url: string) {
   if (active >= MAX_CONCURRENT) await new Promise<void>((resolve) => waiting.push(resolve));
   active++;
   try {
@@ -44,9 +44,8 @@ async function findTaxonId(scientificName: string): Promise<number | null> {
   return taxon?.id ?? null;
 }
 
-async function fetchPhoto(scientificName: string): Promise<PlantPhoto | null> {
-  const id = await findTaxonId(scientificName);
-  if (!id) return null;
+/** Best Creative Commons photo of a taxon (any kind of organism). */
+export async function photoForTaxon(id: number): Promise<PlantPhoto | null> {
   const json = await getJson(`${API}/taxa/${id}`);
   const photos = (json.results?.[0]?.taxon_photos ?? []).map((tp: any) => tp.photo).filter((p: any) => p?.medium_url);
   const rank = (p: any) => {
@@ -61,6 +60,11 @@ async function fetchPhoto(scientificName: string): Promise<PlantPhoto | null> {
     largeUrl: best.large_url ?? best.medium_url,
     attribution: `© ${best.attribution_name ?? 'iNaturalist'} · ${String(best.license_code).toUpperCase()} · iNaturalist`,
   };
+}
+
+async function fetchPhoto(scientificName: string): Promise<PlantPhoto | null> {
+  const id = await findTaxonId(scientificName);
+  return id ? photoForTaxon(id) : null;
 }
 
 async function loadPhoto(scientificName: string): Promise<PlantPhoto | null> {

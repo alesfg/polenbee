@@ -55,9 +55,13 @@ type Language = 'en' | 'es';
 
 // The app is English unless the device is in Spanish; every user-facing text the AI writes follows it.
 const OUTPUT_LANGUAGE: Record<Language, string> = {
-  en: 'Escribe nombreComun, colorNombre, floracion, motivo y mensaje en INGLÉS (nombres comunes ingleses, p. ej. "Ivy", meses como "March – May").',
-  es: 'Escribe nombreComun, colorNombre, floracion, motivo y mensaje en español.',
+  en: 'Escribe nombreComun, colorNombre, floracion, motivo, mensaje y rasgos en INGLÉS (nombres comunes ingleses, p. ej. "Ivy", meses como "March – May").',
+  es: 'Escribe nombreComun, colorNombre, floracion, motivo, mensaje y rasgos en español.',
 };
+
+// Keys the app has illustrations for (src/data/bees.ts).
+const RACE_KEYS = ['iberiensis', 'mellifera', 'ligustica', 'carnica', 'caucasica', 'cecropia', 'anatoliaca', 'intermissa', 'scutellata', 'africanizada', 'buckfast'];
+const BEE_KINDS = ['melifera', 'abejorro', 'carpintera', 'albanil', 'minera', 'solitaria'];
 
 type NearbyPlant = { scientificName: string; commonName: string | null; observations: number; flowering: boolean };
 
@@ -126,6 +130,18 @@ const POLLEN_JSON_SCHEMA = {
       mensaje: { type: 'string' },
       colorPolen: { type: 'string' },
       colorNombre: { type: 'string' },
+      abeja: {
+        type: 'object',
+        properties: {
+          tipo: { type: 'string', enum: [...BEE_KINDS, 'no_es_abeja', 'no_visible'] },
+          casta: { type: 'string', enum: ['obrera', 'reina', 'zangano', 'desconocida'] },
+          raza: { type: 'string', enum: [...RACE_KEYS, 'desconocida', 'no_aplica'] },
+          confianzaRaza: { type: 'string', enum: ['alta', 'media', 'baja'] },
+          rasgos: { type: 'string' },
+        },
+        required: ['tipo', 'casta', 'raza', 'confianzaRaza', 'rasgos'],
+        additionalProperties: false,
+      },
       especies: {
         type: 'array',
         items: {
@@ -144,7 +160,7 @@ const POLLEN_JSON_SCHEMA = {
         },
       },
     },
-    required: ['calidadFoto', 'mensaje', 'colorPolen', 'colorNombre', 'especies'],
+    required: ['calidadFoto', 'mensaje', 'colorPolen', 'colorNombre', 'abeja', 'especies'],
     additionalProperties: false,
   },
 };
@@ -177,7 +193,9 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { imageBase64, latitude, longitude, placeName, localDateTime: rawDateTime, language: rawLanguage } = await req.json();
+    const { imageBase64, latitude, longitude, placeName, localDateTime: rawDateTime, language: rawLanguage, raceHints: rawRaceHints } = await req.json();
+    // Races native to / commonly kept in the area, worked out by the app from the location.
+    const raceHints: string[] = Array.isArray(rawRaceHints) ? rawRaceHints.filter((k: unknown) => typeof k === 'string' && RACE_KEYS.includes(k)) : [];
     const language: Language = rawLanguage === 'es' ? 'es' : 'en';
     if (typeof latitude !== 'number' || typeof longitude !== 'number') {
       return jsonResponse({ success: false, reason: 'invalid_input' }, 400);
@@ -247,6 +265,7 @@ Deno.serve(async (req: Request) => {
       weather ? `Tiempo a esa hora: ${weather.temperature} °C, ${weather.isDay ? 'de día' : 'de noche'}.` : '',
       `Plantas observadas en un radio de ${NEARBY_RADIUS_KM} km en ese mes (iNaturalist):`,
       plantList,
+      raceHints.length ? `Razas de abeja melífera habituales en esa zona (autóctona primero): ${raceHints.join(', ')}.` : '',
       hasImage ? '' : 'No hay foto: estima solo con la ubicación, la fecha y las plantas cercanas.',
     ]
       .filter(Boolean)
@@ -275,6 +294,13 @@ Deno.serve(async (req: Request) => {
               'colorNombre en minúsculas (p. ej. "naranja intenso"). En cada especie, colorPolen y colorNombre son los del polen típico de esa planta; ' +
               'floracion con meses, p. ej. "Marzo – Mayo"; motivo: una frase corta de por qué encaja (color, floración, cercanía, hora). ' +
               'mensaje: una frase de resumen; si la foto no sirvió, dilo con amabilidad y da un consejo para la próxima foto. ' +
+              'abeja: identifica el insecto de la foto. tipo: melifera (Apis mellifera), abejorro (Bombus), carpintera (Xylocopa), ' +
+              'albanil (Osmia, Megachile, Anthidium…), minera (Andrena…), solitaria (otras abejas), no_es_abeja (avispa, sírfido, mosca…) o no_visible. ' +
+              'casta solo para melífera (obrera; zangano con ojos enormes que se tocan y cuerpo ancho; reina con abdomen largo); si no, desconocida. ' +
+              'raza solo si tipo es melifera (si no, no_aplica): elige la más probable fijándote en el color de los terguitos del abdomen ' +
+              '(amarillo dorado = ligustica/buckfast; pardo oscuro con bandas finas = iberiensis; casi negra = mellifera/intermissa; gris con pelos grises = carnica/caucasica) ' +
+              'y en las razas habituales de la zona; por foto rara vez se puede asegurar, así que confianzaRaza casi siempre media o baja. ' +
+              'Si no se distingue, raza = desconocida. rasgos: una frase corta con lo que se ve (colores, bandas, pelo, tamaño). ' +
               OUTPUT_LANGUAGE[language],
           },
           { role: 'user', content: userContent },
@@ -316,6 +342,7 @@ Deno.serve(async (req: Request) => {
           language,
           weather,
           nearbyPlantsCount: nearbyPlants.length,
+          abeja: hasImage ? result.abeja : null,
         },
       })
       .select('id, created_at, photo_taken_at, photo_quality, species, latitude, longitude, place_name, pollen_color, pollen_color_name, context')

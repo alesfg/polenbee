@@ -12,10 +12,12 @@ import { AreaCard } from '@/components/area/AreaCard';
 import { BeePhotos } from '@/components/BeePhotos';
 import { DateTimeModal } from '@/components/DateTimeModal';
 import { HistoryRow } from '@/components/HistoryRow';
-import { Bee } from '@/components/illustrations/Bee';
+import { BrandBee } from '@/components/illustrations/BrandBee';
+import { BeeProfile } from '@/components/illustrations/BeeProfile';
 import { LocationSearchModal } from '@/components/LocationSearchModal';
 import { ResultView } from '@/components/ResultView';
 import { Colors, Spacing } from '@/constants/theme';
+import { RACES, racesForPlace } from '@/data/bees';
 import { usePollenAnalyses } from '@/hooks/usePollenAnalyses';
 import { APP_NAME, locale, t } from '@/i18n';
 import { analyzePollen } from '@/lib/analyzePollen';
@@ -175,7 +177,7 @@ export default function HomeScreen() {
           disabled={view.kind === 'analyzing'}
           activeOpacity={0.8}
         >
-          <Bee size={38} animated={false} />
+          <BrandBee size={38} animated={false} />
           <Text style={styles.brandText}>{APP_NAME}</Text>
         </TouchableOpacity>
         <View style={styles.headerBtns}>
@@ -237,6 +239,30 @@ export default function HomeScreen() {
               />
             )}
 
+            <Animated.View entering={FadeInDown.delay(120)} style={styles.beeLinks}>
+              <TouchableOpacity style={[styles.beeLink, styles.beeLinkLearn]} onPress={() => router.push('/aprende')} activeOpacity={0.85}>
+                <BeeProfile size={74} />
+                <Text style={styles.beeLinkTitle}>{t('learn.title')}</Text>
+                <Text style={styles.beeLinkText}>{t('learn.cardText')}</Text>
+              </TouchableOpacity>
+              {place && (
+                <TouchableOpacity
+                  style={styles.beeLink}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/zona',
+                      params: { lat: String(place.latitude), lon: String(place.longitude), label: place.label, tab: 'bees' },
+                    })
+                  }
+                  activeOpacity={0.85}
+                >
+                  <BeeProfile size={74} look={RACES[racesForPlace(place.latitude, place.longitude).native[0] ?? 'ligustica'].look} />
+                  <Text style={styles.beeLinkTitle}>{t('bees.cardTitle')}</Text>
+                  <Text style={styles.beeLinkText}>{t('bees.cardText')}</Text>
+                </TouchableOpacity>
+              )}
+            </Animated.View>
+
             {zoneAnalyses.length > 0 && (
               <Animated.View entering={FadeInDown.delay(150)}>
                 <View style={styles.sectionHeader}>
@@ -292,7 +318,7 @@ export default function HomeScreen() {
 
         {view.kind === 'error' && (
           <Animated.View entering={FadeInDown.duration(300)} style={styles.errorCard}>
-            <Bee size={90} pollenColor="#D9CBB0" animated={false} />
+            <BrandBee size={90} animated={false} />
             <Text style={styles.errorTitle}>{t('error.title')}</Text>
             <Text style={styles.errorText}>{view.message}</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={() => analyze(view.draft)} activeOpacity={0.85}>
@@ -331,6 +357,11 @@ const styles = StyleSheet.create({
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   brandText: { fontFamily: 'Nunito-Black', fontSize: 22, color: Colors.textPrimary },
   headerBtns: { flexDirection: 'row', gap: 8 },
+  beeLinks: { flexDirection: 'row', gap: 10, marginBottom: 24 },
+  beeLink: { flex: 1, backgroundColor: Colors.card, borderRadius: 20, padding: 14, gap: 2, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  beeLinkLearn: { backgroundColor: '#FFF8EA', borderWidth: 1.5, borderColor: Colors.honeyLight },
+  beeLinkTitle: { fontFamily: 'Nunito-ExtraBold', fontSize: 15, color: Colors.textPrimary, marginTop: 4 },
+  beeLinkText: { fontFamily: 'NunitoSans', fontSize: 12, color: Colors.textMuted2, lineHeight: 16 },
   historyBtn: { backgroundColor: Colors.honeyFaint, borderRadius: 100, paddingHorizontal: 14, paddingVertical: 8 },
   historyBtnText: { fontFamily: 'Nunito-ExtraBold', fontSize: 13.5, color: Colors.honeyDark },
   content: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, width: '100%', maxWidth: 560, alignSelf: 'center' },

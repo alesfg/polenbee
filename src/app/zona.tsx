@@ -4,6 +4,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { LocalBeesSection } from '@/components/bees/LocalBeesSection';
 import { AreaPlantCard, BloomCurve, monthName, PollenBubbles, PollenPalette } from '@/components/area/AreaVisuals';
 import { Colors, Spacing } from '@/constants/theme';
 import { useAreaBloom } from '@/hooks/useAreaBloom';
@@ -13,9 +14,10 @@ import { Place } from '@/types/pollen';
 export default function AreaScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ lat?: string; lon?: string; label?: string }>();
+  const params = useLocalSearchParams<{ lat?: string; lon?: string; label?: string; tab?: string }>();
   const place: Place | null =
     params.lat && params.lon ? { latitude: Number(params.lat), longitude: Number(params.lon), label: params.label ?? '' } : null;
+  const [tab, setTab] = useState<'plants' | 'bees'>(params.tab === 'bees' ? 'bees' : 'plants');
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const { area, loading, error } = useAreaBloom(place, month);
   // The year curve doesn't depend on the month, so keep showing it while another month loads.
@@ -40,6 +42,22 @@ export default function AreaScreen() {
         {!place && <Text style={styles.muted}>{t('area.noPlace')}</Text>}
 
         {place && (
+          <View style={styles.tabs}>
+            {(['plants', 'bees'] as const).map((k) => (
+              <TouchableOpacity key={k} style={[styles.tab, tab === k && styles.tabOn]} onPress={() => setTab(k)} activeOpacity={0.8}>
+                <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>{k === 'plants' ? t('area.tabPlants') : t('area.tabBees')}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
+        {place && tab === 'bees' && (
+          <Animated.View entering={FadeIn.duration(250)}>
+            <LocalBeesSection place={place} />
+          </Animated.View>
+        )}
+
+        {place && tab === 'plants' && (
           <>
             <View style={styles.monthPicker}>
               <TouchableOpacity style={styles.monthBtn} onPress={() => shift(-1)} hitSlop={6}>
@@ -119,5 +137,10 @@ const styles = StyleSheet.create({
   sectionTitle: { fontFamily: 'Nunito-ExtraBold', fontSize: 16, color: Colors.textPrimary, marginBottom: 2 },
   hint: { fontFamily: 'NunitoSans', fontSize: 12, color: Colors.textMuted, lineHeight: 17 },
   muted: { fontFamily: 'NunitoSans', fontSize: 14, color: Colors.textMuted, textAlign: 'center' },
+  tabs: { flexDirection: 'row', backgroundColor: Colors.honeyFaint, borderRadius: 14, padding: 4, marginBottom: 14 },
+  tab: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 11 },
+  tabOn: { backgroundColor: Colors.card, shadowColor: Colors.textPrimary, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4, elevation: 1 },
+  tabText: { fontFamily: 'NunitoSans-Bold', fontSize: 14, color: Colors.textMuted2 },
+  tabTextOn: { color: Colors.textPrimary },
   source: { fontFamily: 'NunitoSans', fontSize: 11.5, color: Colors.textMuted, textAlign: 'center', marginTop: 8 },
 });

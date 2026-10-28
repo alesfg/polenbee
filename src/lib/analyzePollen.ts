@@ -1,6 +1,7 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 import { supabase } from './supabase';
+import { racesForPlace } from '@/data/bees';
 import { language, t } from '@/i18n';
 import { PollenAnalysis, PollenSpecies, Place } from '@/types/pollen';
 
@@ -24,6 +25,7 @@ export function mapAnalysisRow(row: any): PollenAnalysis {
     pollenColorName: row.pollen_color_name ?? null,
     summary: row.context?.summary ?? null,
     temperature: row.context?.weather?.temperature ?? null,
+    bee: row.context?.abeja ?? null,
   };
 }
 
@@ -68,6 +70,7 @@ export async function analyzePollen(imageUri: string, place: Place, takenAt: Dat
         placeName: place.label,
         localDateTime: localDateTime(takenAt),
         language,
+        raceHints: (({ native, kept }) => [...native, ...kept])(racesForPlace(place.latitude, place.longitude)),
       },
     });
 

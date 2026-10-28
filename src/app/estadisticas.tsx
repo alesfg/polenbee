@@ -5,7 +5,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { monthName } from '@/components/area/AreaVisuals';
-import { Bee } from '@/components/illustrations/Bee';
+import { BrandBee } from '@/components/illustrations/BrandBee';
 import { HoneyJar } from '@/components/illustrations/HoneyJar';
 import { PlantThumb } from '@/components/PlantThumb';
 import { Colors, Spacing } from '@/constants/theme';
@@ -69,7 +69,7 @@ export default function StatsScreen() {
 
         {!loading && stats.total === 0 && (
           <View style={styles.empty}>
-            <Bee size={110} />
+            <BrandBee size={110} />
             <Text style={styles.emptyTitle}>{t('stats.emptyTitle')}</Text>
             <Text style={styles.emptyText}>{t('stats.emptyText')}</Text>
             <TouchableOpacity style={styles.primaryBtn} onPress={() => router.replace('/')}>
